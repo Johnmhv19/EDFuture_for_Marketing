@@ -55,29 +55,67 @@ export default async function HomePage() {
   return (
     <main className="min-h-screen">
       {/* ───── Hero ─────
-          Light "highlighter" cream/yellow background with a single thin
-          coloured stripe on the left, like a highlighter mark on a page.
-          Short — just one screen of vertical space, not two. */}
+          Same chalkboard style as the level cards below — dark slate
+          with white chalk text, wood frame on the bottom. Kept short
+          so it doesn't take over the page. */}
       <section
-        className="border-b-2"
+        className="relative"
         style={{
-          backgroundColor: '#fef3c7',
-          borderBottomColor: '#fde68a',
+          backgroundColor: '#1f2937',
+          backgroundImage:
+            'radial-gradient(circle at 20% 30%, rgba(255,255,255,0.04) 0, transparent 40%),' +
+            'radial-gradient(circle at 70% 60%, rgba(255,255,255,0.03) 0, transparent 40%),' +
+            'radial-gradient(circle at 40% 80%, rgba(255,255,255,0.05) 0, transparent 30%)',
         }}
       >
-        <div className="max-w-5xl mx-auto px-6 py-10 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+        {/* Faint chalk smudges for atmosphere */}
+        <div className="absolute top-4 left-8 text-white/5 text-sm pointer-events-none" style={{ fontFamily: "'Caveat', cursive" }}>~</div>
+        <div className="absolute bottom-6 right-10 text-white/5 text-lg pointer-events-none" style={{ fontFamily: "'Caveat', cursive" }}>~</div>
+
+        <div className="max-w-5xl mx-auto px-6 py-8 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
           <div>
-            <div className="text-xs font-bold uppercase tracking-wider text-amber-700">
+            <div
+              className="text-xs font-bold uppercase tracking-wider"
+              style={{
+                color: 'rgba(255,255,255,0.6)',
+                fontFamily: "'Caveat', cursive",
+                fontSize: '1.1rem',
+                fontWeight: '500',
+                letterSpacing: '0.05em',
+                textShadow: '0 0 1px rgba(255,255,255,0.3)',
+              }}
+            >
               YCYW Advanced Pathways Academy
             </div>
-            <h1 className="mt-1 text-3xl md:text-4xl font-extrabold tracking-tight text-gray-900">
+            <h1
+              className="mt-1 text-white"
+              style={{
+                fontFamily: "'Caveat', 'Bradley Hand', 'Brush Script MT', cursive",
+                fontWeight: '700',
+                fontSize: '3.25rem',
+                lineHeight: '1',
+                textShadow:
+                  '0 0 1px rgba(255,255,255,0.4),' +
+                  '0 0 8px rgba(255,255,255,0.18),' +
+                  '0 1px 0 rgba(0,0,0,0.5)',
+                letterSpacing: '0.01em',
+              }}
+            >
               Seeds of the Future
             </h1>
-            <p className="mt-1 text-sm text-amber-900/70">
+            <div
+              className="mt-1"
+              style={{
+                color: 'rgba(255,255,255,0.7)',
+                fontFamily: "'Caveat', cursive",
+                fontSize: '1.15rem',
+                textShadow: '0 0 1px rgba(255,255,255,0.2)',
+              }}
+            >
               Programmes for marketing
-            </p>
+            </div>
           </div>
-          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
             {[
               { n: counts.total, l: 'programmes' },
               { n: counts.pathways, l: 'pathways' },
@@ -85,12 +123,42 @@ export default async function HomePage() {
               { n: 'Sep–Jul', l: 'schedule' },
             ].map((s, i) => (
               <div key={i} className="flex items-baseline gap-1.5">
-                <span className="text-2xl font-extrabold text-gray-900">{s.n}</span>
-                <span className="text-xs uppercase tracking-wider text-amber-900/70">{s.l}</span>
+                <span
+                  className="text-white"
+                  style={{
+                    fontFamily: "'Caveat', cursive",
+                    fontSize: '2rem',
+                    fontWeight: '700',
+                    textShadow: '0 0 1px rgba(255,255,255,0.3), 0 0 6px rgba(255,255,255,0.15)',
+                    lineHeight: '1',
+                  }}
+                >
+                  {s.n}
+                </span>
+                <span
+                  className="uppercase"
+                  style={{
+                    color: 'rgba(255,255,255,0.65)',
+                    fontFamily: "'Caveat', cursive",
+                    fontSize: '0.95rem',
+                    textShadow: '0 0 1px rgba(255,255,255,0.2)',
+                  }}
+                >
+                  {s.l}
+                </span>
               </div>
             ))}
           </div>
         </div>
+
+        {/* Wood frame along the bottom edge of the slate */}
+        <div
+          className="h-1.5"
+          style={{
+            background: 'linear-gradient(180deg, #92400e 0%, #78350f 50%, #451a03 100%)',
+            boxShadow: '0 1px 2px rgba(0,0,0,0.3)',
+          }}
+        />
       </section>
 
       {/* ───── Level quick-jump cards ───── */}
