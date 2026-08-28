@@ -79,6 +79,9 @@ export default async function HomePage() {
         </div>
       </section>
 
+      {/* ───── Quick-jump nav (sticky) ───── */}
+      <QuickNav byLevel={byLevel} />
+
       {/* ───── By Level ───── */}
       <Section
         eyebrow="Browse by level"
@@ -140,7 +143,7 @@ function LevelSection({ level, programmes }) {
   if (programmes.length === 0) return null;
   const color = LEVEL_COLOR[level];
   return (
-    <div className="mb-12 last:mb-0">
+    <div className="mb-12 last:mb-0 scroll-mt-32" id={`level-${level}`}>
       <div className="flex items-baseline gap-3 mb-4">
         <h3
           className="text-xl font-bold"
@@ -231,6 +234,32 @@ function PathwayCard({ pathway, items }) {
           </li>
         ))}
       </ul>
+    </div>
+  );
+}
+
+// Sticky quick-jump nav — same idea as the Notion page's section nav.
+// Each pill is an anchor link to the matching level section.
+function QuickNav({ byLevel }) {
+  const items = LEVEL_ORDER.filter(l => (byLevel[l] || []).length > 0);
+  if (items.length === 0) return null;
+  return (
+    <div className="sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-gray-200 shadow-sm">
+      <div className="max-w-5xl mx-auto px-6 py-3 flex items-center gap-2 overflow-x-auto">
+        <span className="text-xs font-bold uppercase tracking-wider text-gray-500 shrink-0 mr-2">
+          Jump to:
+        </span>
+        {items.map(level => (
+          <a
+            key={level}
+            href={`#level-${level}`}
+            className="shrink-0 px-3 py-1.5 rounded-full text-sm font-semibold transition hover:opacity-80"
+            style={{ backgroundColor: LEVEL_COLOR[level], color: '#fff' }}
+          >
+            {LEVEL_SHORT[level]} <span className="opacity-75">· {(byLevel[level] || []).length}</span>
+          </a>
+        ))}
+      </div>
     </div>
   );
 }
