@@ -1,0 +1,85 @@
+// =====================================================================
+// program-platform — Prisma schema (SQLite)
+// =====================================================================
+// Database for the YCYW Advanced Pathways Academy programme platform.
+// Replaces the previous Notion implementation. Local-first, SQLite,
+// single-process. See README.md and DEPLOY.md for the full picture.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ---- Enum-equivalent string fields ----
+// SQLite + Prisma does not support native enums, so we use string
+// columns and enforce valid values at the application layer.
+// See src/lib/labels.js for the canonical lists and LABELS map.
+
+// Level:        L1 | L2 | L3 | L2_AND_L3 | WHOLE_SCHOOL
+// Pathway:      WHOLE_SCHOOL | ROBOTICS_ENGINEERING | BUSINESS_LAW |
+//               CREATIVE_EXPERIENCE | HEALTH_MEDICINE | SCIENCE_RESEARCH |
+//               COMPUTER_SCIENCE_DATA_SCIENCE
+// FileCategory: VIDEO | PHOTO | ARTICLE | RESOURCE | COVER_IMAGE
+// FileStatus:   ACTIVE | ARCHIVED
+// Status:       Confirmed | Planned | TBD | In development
+// (Status is free-text; the marketing team uses these specific values
+// but the column is a string so admins can add new statuses without
+// a migration.)
+
+// ---- Models ----
+
+model Programme {
+  id           String   @id @default(cuid())
+  name         String   @unique
+  // Level — one of LevelOrder
+  level        String
+  // Pathway — one of PathwayOrder
+  pathway      String
+  yearLevel    String?
+  partners     String?
+  venue        String?
+  dates        String?
+  status       String   @default("Confirmed")
+  description  String?
+  // Ordering
+  sortOrder    Int      @default(0)
+  // Audit
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  files        ProgrammeFile[]
+
+  @@index([level])
+  @@index([pathway])
+  @@index([status])
+}
+
+model ProgrammeFile {
+  id           String       @id @default(cuid())
+  programmeId  String
+  programme    Programme    @relation(fields: [programmeId], references: [id], onDelete: Cascade)
+  // FileCategory
+  category     String
+  // FileStatus
+  status       String       @default("ACTIVE")
+  // Display name (defaults to original filename)
+  displayName  String
+  // Original filename as uploaded
+  originalName String
+  // Stored on disk — relative to UPLOAD_DIR
+  storageKey   String       @unique
+  mimeType     String
+  sizeBytes    Int
+  // Optional caption / description
+  caption      String?
+  // Audit
+  uploadedAt   DateTime     @default(now())
+  uploadedBy   String?
+
+  @@index([programmeId, category])
+  @@index([status])
+}

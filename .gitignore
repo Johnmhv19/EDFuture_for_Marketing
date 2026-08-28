@@ -1,0 +1,49 @@
+# ============================================
+# program-platform — Git ignore rules
+# ============================================
+# This file MUST cover anything that should not be in source control:
+# secrets, build output, uploaded data, dependencies.
+
+# --- Node / Next.js ---
+node_modules/
+.next/
+out/
+dist/
+build/
+
+# --- Local environment ---
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+*.crt
+
+# --- Data (database files + uploads) ---
+# These MUST stay outside the repo. They contain real programme data and
+# user uploads that should not be in version control.
+data/
+prisma/data/
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+
+# --- Prisma generated client ---
+prisma/generated/
+
+# --- OS / editor cruft ---
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# --- Logs ---
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.next-build.log
+.nfs*
