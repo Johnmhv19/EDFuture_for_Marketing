@@ -54,25 +54,39 @@ export default async function HomePage() {
 
   return (
     <main className="min-h-screen">
-      {/* ───── Hero ───── */}
-      <section className="bg-gradient-to-br from-blue-900 via-blue-800 to-cyan-700 text-white">
-        <div className="max-w-5xl mx-auto px-6 py-16 text-center">
-          <h1 className="text-4xl md:text-5xl font-extrabold leading-tight tracking-tight">
-            Seeds of the Future
-          </h1>
-          <p className="mt-3 text-lg md:text-xl text-blue-100">
-            YCYW Advanced Pathways Academy — programmes for marketing
-          </p>
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
+      {/* ───── Hero ─────
+          Light "highlighter" cream/yellow background with a single thin
+          coloured stripe on the left, like a highlighter mark on a page.
+          Short — just one screen of vertical space, not two. */}
+      <section
+        className="border-b-2"
+        style={{
+          backgroundColor: '#fef3c7',
+          borderBottomColor: '#fde68a',
+        }}
+      >
+        <div className="max-w-5xl mx-auto px-6 py-10 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+          <div>
+            <div className="text-xs font-bold uppercase tracking-wider text-amber-700">
+              YCYW Advanced Pathways Academy
+            </div>
+            <h1 className="mt-1 text-3xl md:text-4xl font-extrabold tracking-tight text-gray-900">
+              Seeds of the Future
+            </h1>
+            <p className="mt-1 text-sm text-amber-900/70">
+              Programmes for marketing
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
             {[
               { n: counts.total, l: 'programmes' },
               { n: counts.pathways, l: 'pathways' },
               { n: 'G1–A2', l: 'year levels' },
               { n: 'Sep–Jul', l: 'schedule' },
             ].map((s, i) => (
-              <div key={i} className="bg-white/10 backdrop-blur rounded-xl px-5 py-3 min-w-[110px] border border-white/20">
-                <div className="text-2xl font-extrabold">{s.n}</div>
-                <div className="text-xs uppercase tracking-wide text-blue-100">{s.l}</div>
+              <div key={i} className="flex items-baseline gap-1.5">
+                <span className="text-2xl font-extrabold text-gray-900">{s.n}</span>
+                <span className="text-xs uppercase tracking-wider text-amber-900/70">{s.l}</span>
               </div>
             ))}
           </div>
