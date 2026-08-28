@@ -17,6 +17,15 @@
 
 html { scroll-behavior: smooth; }
 
+/* Self-hosted Caveat — used for the chalk-on-blackboard level cards */
+@font-face {
+  font-family: 'Caveat';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/caveat.woff2') format('woff2');
+}
+
 body {
   background: var(--color-bg);
   color: var(--color-text);

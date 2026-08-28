@@ -258,66 +258,96 @@ function PathwayCard({ pathway, items }) {
   );
 }
 
-// Level quick-jump card. Same shape as a ProgrammeCard but for a level:
-//   - top band uses the level colour (NOT pathway colour — keeps them
-//     visually distinct from programme cards)
-//   - shows the level code + count + a small "pathway mini-bars"
-//     breakdown so you can see at a glance which pathways are inside
+// Level quick-jump card — blackboard with white chalk styling.
+//   - top band looks like a slate blackboard (dark, slightly textured)
+//   - level text rendered in a handwriting font as white chalk
+//   - wood frame on the bottom edge of the slate
+//   - pathway count and breakdown below the slate
+//
+// All 5 level cards use the SAME blackboard colour so they read as a
+// navigation element (not a category), keeping the colour codes clear
+// for programme pathway type.
 function LevelCard({ level, programmes }) {
-  const color = LEVEL_COLOR[level];
   const count = programmes.length;
-  // Count programmes per pathway inside this level
   const byPathwayCount = {};
   for (const p of programmes) {
     byPathwayCount[p.pathway] = (byPathwayCount[p.pathway] || 0) + 1;
   }
   const pathways = Object.entries(byPathwayCount).sort((a, b) => b[1] - a[1]);
 
-  if (count === 0) {
-    return (
-      <div className="card opacity-50">
-        <div className="h-20 flex items-center justify-center text-white/80 text-lg font-bold" style={{ backgroundColor: color }}>
-          {LEVEL_SHORT[level]}
-        </div>
-        <div className="p-3">
-          <div className="text-xs text-gray-400 italic">No programmes yet</div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <a
-      href={`#level-${level}`}
-      className="card flex flex-col group"
+      href={count > 0 ? `#level-${level}` : undefined}
+      className={`card flex flex-col group overflow-hidden ${count === 0 ? 'opacity-50 pointer-events-none' : ''}`}
     >
+      {/* Blackboard surface */}
       <div
-        className="h-20 flex items-center justify-center text-white text-2xl font-extrabold tracking-wide"
-        style={{ backgroundColor: color }}
+        className="relative h-24 flex items-center justify-center"
+        style={{
+          backgroundColor: '#1f2937',
+          backgroundImage:
+            // Very subtle noise/dust texture on the slate
+            'radial-gradient(circle at 20% 30%, rgba(255,255,255,0.04) 0, transparent 40%),' +
+            'radial-gradient(circle at 70% 60%, rgba(255,255,255,0.03) 0, transparent 40%),' +
+            'radial-gradient(circle at 40% 80%, rgba(255,255,255,0.05) 0, transparent 30%)',
+        }}
       >
-        {LEVEL_SHORT[level]}
+        {/* Faint chalk smudges for atmosphere */}
+        <div className="absolute top-2 left-3 text-white/5 text-[10px]" style={{ fontFamily: "'Caveat', cursive" }}>~</div>
+        <div className="absolute bottom-3 right-4 text-white/5 text-[12px]" style={{ fontFamily: "'Caveat', cursive" }}>~</div>
+
+        {/* The level text in chalk — using self-hosted Caveat (handwriting font) */}
+        <span
+          className="text-white text-4xl"
+          style={{
+            fontFamily: "'Caveat', 'Bradley Hand', 'Brush Script MT', cursive",
+            fontWeight: '500',
+            textShadow:
+              '0 0 1px rgba(255,255,255,0.4),' +
+              '0 0 8px rgba(255,255,255,0.18),' +
+              '0 1px 0 rgba(0,0,0,0.5)',
+            letterSpacing: '0.02em',
+          }}
+        >
+          {LEVEL_SHORT[level]}
+        </span>
+
+        {/* Wood frame along the bottom edge of the slate */}
+        <div
+          className="absolute bottom-0 left-0 right-0 h-1.5"
+          style={{
+            background: 'linear-gradient(180deg, #92400e 0%, #78350f 50%, #451a03 100%)',
+            boxShadow: '0 1px 2px rgba(0,0,0,0.3)',
+          }}
+        />
       </div>
+
+      {/* Card body */}
       <div className="p-3 flex-1 flex flex-col">
         <div className="text-xs text-gray-500 mb-1">{LEVEL_LABEL[level]}</div>
         <div className="text-sm font-bold text-gray-900 mb-2">
           {count} programme{count === 1 ? '' : 's'}
         </div>
-        {/* mini pathway bars — shows the colour-coded breakdown */}
-        <div className="flex flex-col gap-1 mt-auto">
-          {pathways.slice(0, 4).map(([pathway, n]) => (
-            <div key={pathway} className="flex items-center gap-1.5 text-xs">
-              <span
-                className="w-2 h-2 rounded-full shrink-0"
-                style={{ backgroundColor: PATHWAY_COLOR[pathway] || '#9ca3af' }}
-              />
-              <span className="truncate text-gray-600 flex-1">{PATHWAY_LABEL[pathway] || pathway}</span>
-              <span className="text-gray-400">{n}</span>
-            </div>
-          ))}
-          {pathways.length > 4 && (
-            <div className="text-xs text-gray-400">+{pathways.length - 4} more</div>
-          )}
-        </div>
+        {pathways.length > 0 && (
+          <div className="flex flex-col gap-1 mt-auto">
+            {pathways.slice(0, 4).map(([pathway, n]) => (
+              <div key={pathway} className="flex items-center gap-1.5 text-xs">
+                <span
+                  className="w-2 h-2 rounded-full shrink-0"
+                  style={{ backgroundColor: PATHWAY_COLOR[pathway] || '#9ca3af' }}
+                />
+                <span className="truncate text-gray-600 flex-1">{PATHWAY_LABEL[pathway] || pathway}</span>
+                <span className="text-gray-400">{n}</span>
+              </div>
+            ))}
+            {pathways.length > 4 && (
+              <div className="text-xs text-gray-400">+{pathways.length - 4} more</div>
+            )}
+          </div>
+        )}
+        {pathways.length === 0 && (
+          <div className="text-xs text-gray-400 italic mt-auto">No programmes yet</div>
+        )}
       </div>
     </a>
   );
