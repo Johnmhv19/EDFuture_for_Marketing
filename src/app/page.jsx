@@ -79,15 +79,35 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* ───── Quick-jump nav (sticky) ───── */}
-      <QuickNav byLevel={byLevel} />
-
-      {/* ───── By Level ───── */}
+      {/* ───── Level quick-jump cards ───── */}
       <Section
         eyebrow="Browse by level"
         title="Programmes by Level"
+        subtitle="Click a card to jump to that level's programmes."
+        background="bg-gray-50"
+      >
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+          {LEVEL_ORDER.map(level => (
+            <LevelCard
+              key={level}
+              level={level}
+              programmes={byLevel[level] || []}
+            />
+          ))}
+        </div>
+      </Section>
+
+      {/* ───── By Level (detailed) ───── */}
+      <Section
+        eyebrow="All programmes"
+        title="Programme List"
         subtitle="Click a programme to see its recap videos, photos, articles, and resources."
       >
+        <div className="text-xs text-gray-500 mb-6 flex flex-wrap gap-x-5 gap-y-1">
+          <span className="font-semibold text-gray-700">Colour key:</span>
+          <span><span className="inline-block w-3 h-3 rounded-sm align-middle mr-1" style={{ backgroundColor: '#2563eb' }}></span> pathway colour = programme type</span>
+          <span><span className="inline-block w-3 h-3 rounded-full align-middle mr-1" style={{ backgroundColor: '#2563eb' }}></span> round badge = level</span>
+        </div>
         {LEVEL_ORDER.map(level => (
           <LevelSection key={level} level={level} programmes={byLevel[level] || []} />
         ))}
@@ -238,28 +258,67 @@ function PathwayCard({ pathway, items }) {
   );
 }
 
-// Sticky quick-jump nav — same idea as the Notion page's section nav.
-// Each pill is an anchor link to the matching level section.
-function QuickNav({ byLevel }) {
-  const items = LEVEL_ORDER.filter(l => (byLevel[l] || []).length > 0);
-  if (items.length === 0) return null;
-  return (
-    <div className="sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-gray-200 shadow-sm">
-      <div className="max-w-5xl mx-auto px-6 py-3 flex items-center gap-2 overflow-x-auto">
-        <span className="text-xs font-bold uppercase tracking-wider text-gray-500 shrink-0 mr-2">
-          Jump to:
-        </span>
-        {items.map(level => (
-          <a
-            key={level}
-            href={`#level-${level}`}
-            className="shrink-0 px-3 py-1.5 rounded-full text-sm font-semibold transition hover:opacity-80"
-            style={{ backgroundColor: LEVEL_COLOR[level], color: '#fff' }}
-          >
-            {LEVEL_SHORT[level]} <span className="opacity-75">· {(byLevel[level] || []).length}</span>
-          </a>
-        ))}
+// Level quick-jump card. Same shape as a ProgrammeCard but for a level:
+//   - top band uses the level colour (NOT pathway colour — keeps them
+//     visually distinct from programme cards)
+//   - shows the level code + count + a small "pathway mini-bars"
+//     breakdown so you can see at a glance which pathways are inside
+function LevelCard({ level, programmes }) {
+  const color = LEVEL_COLOR[level];
+  const count = programmes.length;
+  // Count programmes per pathway inside this level
+  const byPathwayCount = {};
+  for (const p of programmes) {
+    byPathwayCount[p.pathway] = (byPathwayCount[p.pathway] || 0) + 1;
+  }
+  const pathways = Object.entries(byPathwayCount).sort((a, b) => b[1] - a[1]);
+
+  if (count === 0) {
+    return (
+      <div className="card opacity-50">
+        <div className="h-20 flex items-center justify-center text-white/80 text-lg font-bold" style={{ backgroundColor: color }}>
+          {LEVEL_SHORT[level]}
+        </div>
+        <div className="p-3">
+          <div className="text-xs text-gray-400 italic">No programmes yet</div>
+        </div>
       </div>
-    </div>
+    );
+  }
+
+  return (
+    <a
+      href={`#level-${level}`}
+      className="card flex flex-col group"
+    >
+      <div
+        className="h-20 flex items-center justify-center text-white text-2xl font-extrabold tracking-wide"
+        style={{ backgroundColor: color }}
+      >
+        {LEVEL_SHORT[level]}
+      </div>
+      <div className="p-3 flex-1 flex flex-col">
+        <div className="text-xs text-gray-500 mb-1">{LEVEL_LABEL[level]}</div>
+        <div className="text-sm font-bold text-gray-900 mb-2">
+          {count} programme{count === 1 ? '' : 's'}
+        </div>
+        {/* mini pathway bars — shows the colour-coded breakdown */}
+        <div className="flex flex-col gap-1 mt-auto">
+          {pathways.slice(0, 4).map(([pathway, n]) => (
+            <div key={pathway} className="flex items-center gap-1.5 text-xs">
+              <span
+                className="w-2 h-2 rounded-full shrink-0"
+                style={{ backgroundColor: PATHWAY_COLOR[pathway] || '#9ca3af' }}
+              />
+              <span className="truncate text-gray-600 flex-1">{PATHWAY_LABEL[pathway] || pathway}</span>
+              <span className="text-gray-400">{n}</span>
+            </div>
+          ))}
+          {pathways.length > 4 && (
+            <div className="text-xs text-gray-400">+{pathways.length - 4} more</div>
+          )}
+        </div>
+      </div>
+    </a>
   );
 }
