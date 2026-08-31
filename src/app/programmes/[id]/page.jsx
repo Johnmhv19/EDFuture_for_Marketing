@@ -94,32 +94,44 @@ export default async function ProgrammePage({ params }) {
                     <span className="text-sm text-gray-500 font-normal">· {items.length}</span>
                   </h2>
                   <ul className="divide-y divide-gray-100">
-                    {items.map(f => (
-                      <li key={f.id} className="py-3 flex items-center gap-3">
-                        <span className="text-2xl">{FILE_CATEGORY_ICON[f.category]}</span>
-                        <div className="flex-1 min-w-0">
-                          <a
-                            href={`/api/files/${f.id}`}
-                            target="_blank"
-                            rel="noopener"
-                            className="font-medium text-blue-700 hover:underline truncate block"
-                          >
-                            {f.displayName}
-                          </a>
-                          {f.caption && <p className="text-xs text-gray-500">{f.caption}</p>}
-                          <p className="text-xs text-gray-400">
-                            {formatBytes(f.sizeBytes)} · {new Date(f.uploadedAt).toLocaleDateString()}
-                          </p>
-                        </div>
-                        <a
-                          href={`/api/files/${f.id}`}
-                          download
-                          className="btn btn-ghost"
-                        >
-                          Download
-                        </a>
-                      </li>
-                    ))}
+                    {items.map(f => {
+                      const isExternal = f.type === 'LINK' || f.type === 'FOLDER';
+                      const href = isExternal ? f.url : `/api/files/${f.id}`;
+                      const icon = f.type === 'FOLDER' ? '📁' : f.type === 'LINK' ? '🔗' : FILE_CATEGORY_ICON[f.category];
+                      const meta = isExternal
+                        ? shortUrl(f.url)
+                        : `${formatBytes(f.sizeBytes)} · ${new Date(f.uploadedAt).toLocaleDateString()}`;
+                      return (
+                        <li key={f.id} className="py-3 flex items-center gap-3">
+                          <span className="text-2xl">{icon}</span>
+                          <div className="flex-1 min-w-0">
+                            <a
+                              href={href}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="font-medium text-blue-700 hover:underline truncate block"
+                            >
+                              {f.displayName}
+                            </a>
+                            {f.caption && <p className="text-xs text-gray-500">{f.caption}</p>}
+                            <p className="text-xs text-gray-400">{meta}</p>
+                          </div>
+                          {isExternal ? (
+                            <span className="text-xs text-gray-500 px-3">
+                              {f.type === 'FOLDER' ? 'Folder' : 'Link'} ↗
+                            </span>
+                          ) : (
+                            <a
+                              href={href}
+                              download
+                              className="btn btn-ghost"
+                            >
+                              Download
+                            </a>
+                          )}
+                        </li>
+                      );
+                    })}
                   </ul>
                 </div>
               );
@@ -163,4 +175,8 @@ function formatBytes(bytes) {
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   if (bytes < 1024 * 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
   return `${(bytes / 1024 / 1024 / 1024).toFixed(2)} GB`;
+}
+
+function shortUrl(url) {
+  try { return new URL(url).hostname.replace('www.', ''); } catch { return url; }
 }

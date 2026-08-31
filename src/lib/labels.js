@@ -67,6 +67,23 @@ export const FILE_CATEGORY_ICON = {
 export const FILE_STATUS = { ACTIVE: 'ACTIVE', ARCHIVED: 'ARCHIVED' };
 export const FILE_STATUS_ORDER = ['ACTIVE', 'ARCHIVED'];
 
+// File type — how the file is stored/linked.
+// UPLOAD = file on disk, served via /api/files/[id]
+// LINK   = external URL to a single resource (YouTube, Bilibili, TEAMS doc)
+// FOLDER = external URL to a folder of resources (Google Drive, OneDrive)
+export const FILE_TYPE_LABEL = {
+  UPLOAD: 'Upload file',
+  LINK:   'External link',
+  FOLDER: 'External folder',
+};
+export const FILE_TYPE_ICON = {
+  UPLOAD: '⬆',
+  LINK:   '🔗',
+  FOLDER: '📁',
+};
+export const FILE_TYPES = { UPLOAD: 'UPLOAD', LINK: 'LINK', FOLDER: 'FOLDER' };
+export const FILE_TYPE_ORDER = ['UPLOAD', 'LINK', 'FOLDER'];
+
 // Public-visible categories (everything except COVER_IMAGE)
 export const PUBLIC_FILE_CATEGORIES = ['VIDEO', 'PHOTO', 'ARTICLE', 'RESOURCE'];
 

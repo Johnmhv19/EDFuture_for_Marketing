@@ -62,18 +62,26 @@ model ProgrammeFile {
   id           String       @id @default(cuid())
   programmeId  String
   programme    Programme    @relation(fields: [programmeId], references: [id], onDelete: Cascade)
-  // FileCategory
+  // FileCategory: VIDEO | PHOTO | ARTICLE | RESOURCE | COVER_IMAGE
   category     String
+  // FileType:    UPLOAD | LINK | FOLDER
+  //   UPLOAD = file on disk (storageKey set)
+  //   LINK   = external URL to a single resource (storageKey null, url set)
+  //   FOLDER = external URL to a folder of resources (storageKey null, url set)
+  type         String       @default("UPLOAD")
   // FileStatus
   status       String       @default("ACTIVE")
-  // Display name (defaults to original filename)
+  // Display name (defaults to original filename or URL)
   displayName  String
-  // Original filename as uploaded
-  originalName String
-  // Stored on disk — relative to UPLOAD_DIR
-  storageKey   String       @unique
-  mimeType     String
-  sizeBytes    Int
+  // For UPLOAD: original filename. Null for LINK/FOLDER.
+  originalName String?
+  // For UPLOAD: path on disk, relative to UPLOAD_DIR. Null for LINK/FOLDER.
+  storageKey   String?      @unique
+  // For LINK / FOLDER: the external URL. Null for UPLOAD.
+  url          String?
+  // For UPLOAD: mime type and size. Null for LINK/FOLDER.
+  mimeType     String?
+  sizeBytes    Int?
   // Optional caption / description
   caption      String?
   // Audit
@@ -81,5 +89,6 @@ model ProgrammeFile {
   uploadedBy   String?
 
   @@index([programmeId, category])
+  @@index([type])
   @@index([status])
 }

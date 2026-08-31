@@ -1,6 +1,10 @@
-// Public file streaming route. Serves the actual bytes from
-// UPLOAD_DIR / storageKey. Anyone (no auth) can read these — they
-// are the public marketing assets.
+// Public file streaming / link route.
+//
+// For UPLOAD files: stream the actual bytes from UPLOAD_DIR/storageKey.
+// For LINK and FOLDER: 302 redirect to the external URL.
+//
+// Anyone with a valid viewer or admin session can fetch these. They
+// are the marketing team's public assets.
 
 import { NextResponse } from 'next/server';
 import fs from 'node:fs';
@@ -12,7 +16,6 @@ import { requireViewer } from '@/lib/auth';
 export const dynamic = 'force-dynamic';
 
 function safeJoin(base, rel) {
-  // Defence-in-depth: block path traversal.
   const full = path.resolve(base, rel);
   if (!full.startsWith(path.resolve(base) + path.sep) && full !== path.resolve(base)) {
     throw new Error('Invalid path');
@@ -21,8 +24,6 @@ function safeJoin(base, rel) {
 }
 
 export async function GET(req, ctx) {
-  // Require at least viewer (i.e. logged in). Public visitors don't
-  // get files; the marketing team uses the viewer token.
   const denied = await requireViewer();
   if (denied) return denied;
 
@@ -30,6 +31,19 @@ export async function GET(req, ctx) {
   const file = await prisma.programmeFile.findUnique({ where: { id } });
   if (!file || file.status !== 'ACTIVE') {
     return new NextResponse('Not found', { status: 404 });
+  }
+
+  // LINK / FOLDER — bounce the user to the external URL.
+  if (file.type === 'LINK' || file.type === 'FOLDER') {
+    if (!file.url) {
+      return new NextResponse('Link missing', { status: 410 });
+    }
+    return NextResponse.redirect(file.url, { status: 302 });
+  }
+
+  // UPLOAD — stream the file from disk.
+  if (!file.storageKey) {
+    return new NextResponse('File missing on disk', { status: 410 });
   }
 
   let absPath;
@@ -45,7 +59,6 @@ export async function GET(req, ctx) {
 
   const stat = fs.statSync(absPath);
   const stream = fs.createReadStream(absPath);
-  // Convert Node stream to Web ReadableStream
   const webStream = new ReadableStream({
     start(controller) {
       stream.on('data', chunk => controller.enqueue(chunk));
@@ -55,11 +68,12 @@ export async function GET(req, ctx) {
     cancel() { stream.destroy(); },
   });
 
+  const filename = file.originalName || file.displayName;
   return new NextResponse(webStream, {
     headers: {
       'Content-Type': file.mimeType || 'application/octet-stream',
       'Content-Length': String(stat.size),
-      'Content-Disposition': `inline; filename="${encodeURIComponent(file.originalName)}"`,
+      'Content-Disposition': `inline; filename="${encodeURIComponent(filename)}"`,
       'Cache-Control': 'private, max-age=300',
     },
   });
