@@ -1,7 +1,17 @@
+---
+project: YCYW Programmes Platform
+slug: edfuture-for-marketing
+repo: Johnmhv19/EDFuture_for_Marketing
+sandbox_path: /workspace/program-platform/
+user_path: ~/EDFuture_for_Marketing/
+---
+
 # YCYW Programmes Platform — Project Status
 
 > Daily project log. **Read at the start of every session** to refresh
 > context, then update with what we did today before the session ends.
+> The YAML frontmatter above is the canonical identifier — always check
+> `project:` matches before treating this file as context.
 
 _Last updated: 2026-08-31 (end of session)_
 
