@@ -7,6 +7,8 @@ _Last updated: 2026-08-31 (end of session)_
 
 ---
 
+**Status: end of session, picking up later.** All requested features built and tested. User confirmed external link/folder support works on their Mac (added a Bilibili link, got it back to me as a 201 + rendered correctly on the public page). User said "we will continue later" — no new work this turn beyond this STATUS update.
+
 ## At a glance
 
 | | |
@@ -26,8 +28,9 @@ _Last updated: 2026-08-31 (end of session)_
 
 | | |
 |---|---|
-| **DB** | 33 programmes · **0 files** uploaded |
+| **DB** | 33 programmes · **0 files** uploaded (1 test link tried and cleaned up) |
 | **Latest commit** | 2026-08-31 — "Support external links and folders" |
+| **External LINK/FOLDER type** | ✅ Built, migration applied, API + UI working — user confirmed on their Mac |
 | **GitHub collaborator added?** | ❌ `shouli.pu@ycyw.cn` not yet added (IT, user's action) |
 | **Production deployed?** | ❌ IT hasn't deployed yet |
 | **Demo (2026-08-28)** | ❓ Still unknown — user never reported back |
@@ -126,4 +129,5 @@ _Last updated: 2026-08-31 (end of session)_
   - `/api/files/[id]` 302-redirects to external URL for non-UPLOAD types
   - Admin FilesManager: single form with type dropdown, switches between file picker and URL field
   - Public programme detail: shows "Link ↗" / "Folder ↗" badges for external items
-- **End of session**: user still on initial commit `f9774a1` locally because git pull is broken. Worked around by using curl to pull individual files. Suggested follow-up: set up SSH key or GitHub CLI for proper git auth
+- **PM**: User hit Prisma `originalName: String` error when adding a link — DB was migrated but the Prisma client wasn't regenerated. Fix: `npx prisma migrate deploy && npx prisma generate`. Worked after that. User confirmed the feature works.
+- **End of session**: user said "we will continue later". No new requests. Closing out cleanly.
