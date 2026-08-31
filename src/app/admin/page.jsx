@@ -1,4 +1,5 @@
-// Admin dashboard — quick stats and recent activity.
+// Admin dashboard — three big "Quick actions" cards (Add / Edit / Delete)
+// on top, then stats, then breakdown.
 import Link from 'next/link';
 import { prisma } from '@/lib/db';
 import { LEVEL_LABEL, LEVEL_SHORT, LEVEL_COLOR, LEVEL_ORDER, PATHWAY_LABEL, FILE_CATEGORY_LABEL } from '@/lib/labels';
@@ -28,13 +29,46 @@ export default async function AdminHome() {
         <p className="text-gray-500">Manage programmes, files, and content for the marketing team.</p>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Stat label="Programmes" value={programmes.length} />
-        <Stat label="Active files" value={totalFiles} />
-        <Stat label="Levels covered" value={Object.values(byLevel).filter(v => v > 0).length} />
-        <Stat label="Pathways covered" value={Object.keys(PATHWAY_LABEL).length} />
+      {/* ───── Quick actions ───── */}
+      <div>
+        <h2 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-3">Quick actions</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <ActionCard
+            href="/admin/programmes/new"
+            color="#16a34a"
+            icon="＋"
+            title="Add programme"
+            description="Create a new programme from scratch — name, level, pathway, dates, status, description."
+          />
+          <ActionCard
+            href="/admin/programmes"
+            color="#2563eb"
+            icon="✎"
+            title="Edit programmes"
+            description="Browse, search, and edit any of the 33 programmes. Update metadata, upload files, change covers."
+          />
+          <ActionCard
+            href="/admin/programmes?view=delete"
+            color="#dc2626"
+            icon="🗑"
+            title="Delete programmes"
+            description="Browse the list with delete buttons enabled. Deletion is permanent and removes all files."
+          />
+        </div>
       </div>
 
+      {/* ───── Stats ───── */}
+      <div>
+        <h2 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-3">Overview</h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Stat label="Programmes" value={programmes.length} />
+          <Stat label="Active files" value={totalFiles} />
+          <Stat label="Levels covered" value={Object.values(byLevel).filter(v => v > 0).length} />
+          <Stat label="Pathways covered" value={Object.keys(PATHWAY_LABEL).length} />
+        </div>
+      </div>
+
+      {/* ───── By level breakdown ───── */}
       <div className="card p-6">
         <h2 className="font-bold mb-4">By level</h2>
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
@@ -54,6 +88,7 @@ export default async function AdminHome() {
         </div>
       </div>
 
+      {/* ───── By file category breakdown ───── */}
       <div className="card p-6">
         <h2 className="font-bold mb-4">By file category</h2>
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
@@ -65,13 +100,34 @@ export default async function AdminHome() {
           ))}
         </div>
       </div>
-
-      <div>
-        <Link href="/admin/programmes" className="btn btn-primary">
-          Manage programmes →
-        </Link>
-      </div>
     </div>
+  );
+}
+
+function ActionCard({ href, color, icon, title, description }) {
+  return (
+    <Link
+      href={href}
+      className="card p-5 hover:shadow-md transition group block"
+      style={{ borderTop: `4px solid ${color}` }}
+    >
+      <div className="flex items-center gap-3">
+        <div
+          className="w-10 h-10 rounded-full flex items-center justify-center text-white text-xl font-bold shrink-0"
+          style={{ backgroundColor: color }}
+        >
+          {icon}
+        </div>
+        <h3 className="text-base font-bold text-gray-900 group-hover:text-blue-700">{title}</h3>
+      </div>
+      <p className="mt-2 text-sm text-gray-600">{description}</p>
+      <div
+        className="mt-3 text-xs font-bold uppercase tracking-wider"
+        style={{ color }}
+      >
+        {title} →
+      </div>
+    </Link>
   );
 }
 
