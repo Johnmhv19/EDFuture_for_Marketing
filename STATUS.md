@@ -3,7 +3,7 @@
 > Daily project log. **Read at the start of every session** to refresh
 > context, then update with what we did today before the session ends.
 
-_Last updated: 2026-08-31_
+_Last updated: 2026-08-31 (end of session)_
 
 ---
 
@@ -26,32 +26,28 @@ _Last updated: 2026-08-31_
 
 | | |
 |---|---|
-| **DB** | 33 programmes (2 starter + 31 from Notion) · **0 files** uploaded |
-| **Latest commit** | 2026-08-28 — "Add search bar + softer smooth scroll + full-black hero" |
+| **DB** | 33 programmes · **0 files** uploaded |
+| **Latest commit** | 2026-08-31 — "Support external links and folders" |
 | **GitHub collaborator added?** | ❌ `shouli.pu@ycyw.cn` not yet added (IT, user's action) |
 | **Production deployed?** | ❌ IT hasn't deployed yet |
-| **Demo (2026-08-28)** | ❓ Unknown — user never reported back |
+| **Demo (2026-08-28)** | ❓ Still unknown — user never reported back |
+| **Git auth on user's Mac** | ❌ VPN blocks HTTPS git; user uses `curl` to fetch files from GitHub instead |
 
 ---
 
-## Where we left off (2026-08-28)
+## Where we left off (2026-08-31)
 
 ### Built & shipped
-- **Home page** (`/`) — blackboard hero (full black) with chalk-style "Seeds of the Future" in Caveat handwriting font, 4 inline stat numbers
-- **Sticky search bar** with magnifying-glass icon — real-time filter across name, description, partners, year level, venue, dates
-- **5 chalkboard level quick-jump cards** — all same dark color, click to scroll, 1200ms ease-in-out cubic
-- **Programme list** grouped by level (with colour-key legend)
-- **Programme detail** page with cover, metadata sidebar, file list
-- **Admin section** — dashboard with stats, programme list with level filters, create/edit form, file upload UI
-- **Auth** — `/login` accepts admin or viewer token, 7-day httpOnly cookie
-- **API** — 7 routes: healthz, auth login, file streaming, admin CRUD on programmes + files
-- **All pushed to GitHub** in `Johnmhv19/EDFuture_for_Marketing`
+- **Admin section restructured** — 3 colour-coded quick-action cards on the dashboard (Add / Edit / Delete), dedicated `/admin/programmes/new` page, inline delete buttons per row in the list
+- **External link & folder support** — each ProgrammeFile now has a `type` of `UPLOAD` | `LINK` | `FOLDER`. Admins can paste a YouTube/Bilibili/TEAMS URL or a Google Drive folder URL instead of uploading. The public `/api/files/[id]` endpoint 302-redirects to the external URL for links/folders
+- **Login flow** — admins are now sent to `/admin` after login (not `/`); the home page shows an "Open admin panel →" bar at the top for signed-in admins
+- **Admin nav** — three colour-coded action links (+ Add / Edit / Delete) right in the top bar
+- **STATUS.md created and committed** — daily log that gets read at session start, updated at session end
 
 ### Design decisions (locked in)
-- Level cards: chalkboard style with all-same dark color, so colour codes unambiguously mean **pathway type** on programme cards
-- Self-hosted Caveat woff2 in `/public/fonts/` (no Google Fonts dep)
-- Smooth scroll: 1200ms ease-in-out cubic (browser default was too abrupt)
-- All enums stored as strings (SQLite + Prisma no native enums)
+- File types: UPLOAD (existing) / LINK (external URL) / FOLDER (external URL to a folder). Category is orthogonal — a FOLDER can be a "PHOTO" (folder of photos)
+- Migration: 20260831033751_add_file_type_and_url. Existing rows default to UPLOAD with their original storageKey
+- Login redirect: admin → /admin, viewer → wherever the ?next= param points (default /)
 
 ---
 
@@ -60,7 +56,9 @@ _Last updated: 2026-08-31_
 ### User action items
 - [ ] Add IT collaborator `shouli.pu@ycyw.cn` to the GitHub repo (Settings → Collaborators)
 - [ ] (Optional) Revoke the fine-grained PAT used for the initial push — `https://github.com/settings/tokens`
+- [ ] Fix git auth on the Mac (so `git pull` works) — VPN blocks HTTPS git; options are GitHub CLI auth or an SSH key
 - [ ] Upload real programme files (covers, videos, photos, articles) via the admin UI
+- [ ] Add a few real **external links/folders** via the new LINK/FOLDER type (e.g. paste a YouTube recap URL on the first programme, try it out)
 
 ### IT action items (hand them `DEPLOY.md`)
 - [ ] Provision `/opt/ycyw-program-platform/` (app) + `/var/data/ycyw-program-platform/` (DB + uploads)
@@ -80,12 +78,13 @@ _Last updated: 2026-08-31_
 
 ### Database models
 - `Programme` — id, name (unique), level, pathway, yearLevel, partners, venue, dates, status, description, sortOrder
-- `ProgrammeFile` — id, programmeId, category, status (ACTIVE/ARCHIVED), displayName, originalName, storageKey (relative to UPLOAD_DIR), mimeType, sizeBytes, caption, uploadedAt
+- `ProgrammeFile` — id, programmeId, **category** (VIDEO | PHOTO | ARTICLE | RESOURCE | COVER_IMAGE), **type** (UPLOAD | LINK | FOLDER), status (ACTIVE | ARCHIVED), displayName, originalName (nullable), storageKey (nullable, unique), url (nullable), mimeType (nullable), sizeBytes (nullable), caption, uploadedAt
 
 ### String enums (validated at app layer — see `src/lib/labels.js`)
 - **Level**: `L1 | L2 | L3 | L2_AND_L3 | WHOLE_SCHOOL`
 - **Pathway**: `WHOLE_SCHOOL | ROBOTICS_ENGINEERING | BUSINESS_LAW | CREATIVE_EXPERIENCE | HEALTH_MEDICINE | SCIENCE_RESEARCH | COMPUTER_SCIENCE_DATA_SCIENCE`
 - **FileCategory**: `VIDEO | PHOTO | ARTICLE | RESOURCE | COVER_IMAGE`
+- **FileType**: `UPLOAD | LINK | FOLDER` (new in 2026-08-31)
 - **FileStatus**: `ACTIVE | ARCHIVED`
 - **Status**: free-text (commonly `Confirmed | Planned | TBD | In development`)
 
@@ -102,7 +101,6 @@ _Last updated: 2026-08-31_
 ## Daily log
 
 ### 2026-08-28 — build + design iteration
-
 - **AM**: Built full platform from scratch — Next.js scaffolding, Prisma schema, auth, admin section, API routes, all pages
 - **PM**: Pushed to GitHub, user cloned to Mac, hit SWC binary bug on M3, fixed by `rm -rf node_modules package-lock.json && npm install`
 - **PM**: Loaded 31 real programmes from Notion via hardcoded seed dump (no token needed on user's side)
@@ -112,7 +110,20 @@ _Last updated: 2026-08-31_
 ### 2026-08-29, 2026-08-30
 - No activity
 
-### 2026-08-31
-- User returned after the weekend, asked for this status log
-- Created `STATUS.md` and added memory note to read it at start of every session
-- No code changes
+### 2026-08-31 — admin restructure + LINK/FOLDER support
+- **AM**: User returned, asked for a status log. Created `STATUS.md` and added memory note to read it at start of every session
+- **AM**: User's `git pull` is broken (VPN blocks HTTPS git to github.com). Spent ~20 min debugging: tried `gh auth login` (TLS timeout), `gh auth login --with-token`, `git -c http.version=HTTP/1.1 fetch origin` — all fail because the TCP connection to 20.205.243.166:443 hangs in the VPN. Settled on the workaround: use `curl` to fetch individual files from `raw.githubusercontent.com` (which works through the VPN)
+- **PM**: User asked for clearer admin sections (Add / Edit / Delete). Restructured:
+  - Dashboard with 3 colour-coded quick-action cards
+  - Dedicated `/admin/programmes/new` page (replaced the modal)
+  - Inline delete button per row in the programme list
+  - `?view=delete` mode with a red warning banner
+  - Admin nav: colour-coded + Add / Edit / Delete links in the top bar
+- **PM**: User asked to be redirected to /admin after admin login (not /), and to have an admin button on the home page. Done — `isAdmin()` server check, conditional admin bar, login redirect by role
+- **PM**: User asked for external link/folder support (YouTube, TEAMS, Drive). Built the 3-type file model:
+  - Schema migration: added `type` and `url`, made storageKey/originalName/mimeType/sizeBytes nullable
+  - API accepts both multipart/form-data (UPLOAD) and application/json (LINK/FOLDER)
+  - `/api/files/[id]` 302-redirects to external URL for non-UPLOAD types
+  - Admin FilesManager: single form with type dropdown, switches between file picker and URL field
+  - Public programme detail: shows "Link ↗" / "Folder ↗" badges for external items
+- **End of session**: user still on initial commit `f9774a1` locally because git pull is broken. Worked around by using curl to pull individual files. Suggested follow-up: set up SSH key or GitHub CLI for proper git auth
