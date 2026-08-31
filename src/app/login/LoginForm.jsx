@@ -28,7 +28,11 @@ export default function LoginForm() {
         body: JSON.stringify({ token, role }),
       });
       if (res.ok) {
-        router.push(next);
+        // Admins go straight to /admin (unless they were trying to land
+        // somewhere else). Viewers go wherever the page redirected from
+        // (or the marketing home).
+        const dest = role === 'admin' ? (next === '/' ? '/admin' : next) : next;
+        router.push(dest);
         router.refresh();
       } else {
         const data = await res.json().catch(() => ({}));

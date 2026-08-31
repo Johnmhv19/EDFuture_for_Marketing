@@ -3,8 +3,10 @@
 // component (ProgrammesBrowser) which owns search state + the slow
 // smooth scroll for level jumps.
 
+import Link from 'next/link';
 import { prisma } from '@/lib/db';
 import { ensureDataDirs } from '@/lib/config';
+import { isAdmin } from '@/lib/auth';
 import { LEVEL_ORDER } from '@/lib/labels';
 import ProgrammesBrowser from './ProgrammesBrowser';
 
@@ -47,9 +49,25 @@ export default async function HomePage() {
     total: programmes.length,
     pathways: Object.keys(byPathway).length,
   };
+  const admin = await isAdmin();
 
   return (
     <main className="min-h-screen">
+      {/* ───── Admin bar (only visible to admin users) ───── */}
+      {admin && (
+        <div className="bg-gray-900 text-white">
+          <div className="max-w-6xl mx-auto px-6 py-2 flex items-center justify-between text-sm">
+            <span className="text-gray-400">Signed in as <span className="font-semibold text-white">Admin</span></span>
+            <Link
+              href="/admin"
+              className="px-3 py-1 rounded bg-blue-600 hover:bg-blue-500 text-white font-semibold"
+            >
+              Open admin panel →
+            </Link>
+          </div>
+        </div>
+      )}
+
       {/* ───── Hero (chalkboard, full black) ───── */}
       <section
         className="relative"
