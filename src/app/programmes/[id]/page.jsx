@@ -1,6 +1,14 @@
 // Programme detail page (public, read-only).
 // Shows the cover, metadata, and all public files (videos, photos,
 // articles, resources) grouped by category.
+//
+// File visibility:
+//   - Public: any viewer (or unauth) can see the cover and public
+//     files via /api/files/[id]; the public programme page also
+//     lists them.
+//   - Private (isPublic = false): only admins see them. The
+//     public page hides them; the /api/files route 404s for
+//     non-admins (existence not leaked). See AUDIT-REPORT.md M-2.
 
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -12,6 +20,7 @@ import {
   STATUS_COLOR,
 } from '@/lib/labels';
 import { withBase } from '@/lib/basePath';
+import { isAdmin } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,8 +41,13 @@ export default async function ProgrammePage({ params }) {
   const programme = await getProgramme(id);
   if (!programme) notFound();
 
+  const admin = await isAdmin();
+  // Cover is always shown if it exists. Public viewers only see
+  // the cover if its isPublic flag is true (or it's the default
+  // public behaviour for non-COVER_IMAGE categories).
   const cover = programme.files.find(f => f.category === 'COVER_IMAGE');
-  const otherFiles = programme.files.filter(f => f.category !== 'COVER_IMAGE');
+  const visibleFiles = admin ? programme.files : programme.files.filter(f => f.isPublic);
+  const otherFiles = visibleFiles.filter(f => f.category !== 'COVER_IMAGE');
   const grouped = {};
   for (const cat of PUBLIC_FILE_CATEGORIES) grouped[cat] = [];
   for (const f of otherFiles) (grouped[f.category] ||= []).push(f);

@@ -1,12 +1,21 @@
 // Auth middleware. Runs on Next.js Edge runtime — must not import
-// any Node modules (fs, path, crypto, etc.) at the top level.
+// any Node-only modules (fs, path, etc.) at the top level. We can
+// use crypto.subtle (Web Crypto) which is available in both Edge
+// and Node runtimes.
 //
 // Logic:
 //   - Public routes (/login, /api/auth/*, /api/healthz, /_next/*) pass
 //     through.
-//   - Admin routes (/admin/*, /api/admin/*) require the 'admin' cookie.
-//   - Auth-gated read endpoints (/api/files/*) require 'admin' or 'viewer'.
-//   - Everything else (home, programme detail) requires ANY auth.
+//   - Admin routes (/admin/*, /api/admin/*) require a verified 'admin' cookie.
+//   - Auth-gated read endpoints (/api/files/*) require a verified
+//     'admin' or 'viewer' cookie.
+//   - Everything else (home, programme detail) requires any verified
+//     role cookie.
+//
+// Cookie verification: the cookie value is `role.signature` and is
+// checked against HMAC-SHA256(COOKIE_SECRET, role) before being
+// trusted. A literal "admin" cookie is rejected — see
+// src/lib/signedCookie.js and AUDIT-REPORT.md C-1.
 //
 // Sub-path deployment: when the app is served under a sub-directory
 // (e.g. /Marketing/api/healthz), Next.js has ALREADY removed the
@@ -20,6 +29,7 @@
 // basePath setting).
 
 import { NextResponse } from 'next/server';
+import { verifyRole } from '@/lib/signedCookie';
 
 const COOKIE = process.env.ROLE_COOKIE_NAME || 'pp_role';
 const BASE_PATH = process.env.BASE_PATH || '';
@@ -46,9 +56,14 @@ function stripBase(pathname) {
   return pathname;
 }
 
-export function middleware(req) {
+export async function middleware(req) {
   const pathname = stripBase(req.nextUrl.pathname);
-  const role = req.cookies.get(COOKIE)?.value || null;
+  const raw = req.cookies.get(COOKIE)?.value;
+  // verifyRole returns the role string on a valid signature, or
+  // null on any failure (missing, malformed, tampered). The HMAC
+  // verify is constant-time per the Web Crypto spec, so no extra
+  // timingSafeEqual is needed.
+  const role = await verifyRole(raw);
 
   if (PUBLIC_PREFIXES.some(p => pathname.startsWith(p))) {
     return NextResponse.next();

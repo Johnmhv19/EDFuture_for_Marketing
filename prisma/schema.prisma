@@ -84,6 +84,10 @@ model ProgrammeFile {
   sizeBytes    Int?
   // Optional caption / description
   caption      String?
+  // Whether non-admin viewers can fetch this file via /api/files/[id].
+  // COVER_IMAGE defaults to false; everything else defaults to true.
+  // See AUDIT-REPORT.md M-2.
+  isPublic     Boolean      @default(false)
   // Audit
   uploadedAt   DateTime     @default(now())
   uploadedBy   String?

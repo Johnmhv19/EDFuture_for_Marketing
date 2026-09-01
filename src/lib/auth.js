@@ -1,18 +1,36 @@
-// Two-tier bearer-token auth. The client stores its role in an httpOnly
-// cookie set by /api/auth/login, and sends it back on every request.
-// The middleware reads the cookie and attaches `role` to the request.
+// Two-tier bearer-token auth. The client stores its role in an
+// httpOnly cookie set by /api/auth/login, and sends it back on every
+// request. The cookie value is signed (see ./signedCookie.js) so the
+// server can verify it is genuine and has not been forged by the
+// client. The middleware reads and verifies the cookie; route
+// handlers use `getRole()` which also verifies.
 
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
+import crypto from 'node:crypto';
 import { config } from './config.js';
+import { verifyRole } from './signedCookie.js';
 
 export const ROLE = { ADMIN: 'admin', VIEWER: 'viewer', NONE: 'none' };
 
+// Constant-time string equality. Buffers of different length are
+// rejected without a length-probing side channel. Used for the
+// bearer-token compare at /api/auth/login.
+function safeEq(a, b) {
+  if (typeof a !== 'string' || typeof b !== 'string') return false;
+  const ab = Buffer.from(a, 'utf8');
+  const bb = Buffer.from(b, 'utf8');
+  if (ab.length !== bb.length) return false;
+  return crypto.timingSafeEqual(ab, bb);
+}
+
 export async function getRole() {
   const c = await cookies();
-  const v = c.get(config.roleCookieName)?.value;
-  if (v === ROLE.ADMIN) return ROLE.ADMIN;
-  if (v === ROLE.VIEWER) return ROLE.VIEWER;
+  const raw = c.get(config.roleCookieName)?.value;
+  if (!raw) return ROLE.NONE;
+  const verified = await verifyRole(raw);
+  if (verified === ROLE.ADMIN) return ROLE.ADMIN;
+  if (verified === ROLE.VIEWER) return ROLE.VIEWER;
   return ROLE.NONE;
 }
 
@@ -31,8 +49,8 @@ export function roleForToken(raw) {
   if (!raw) return null;
   // Accept "Bearer xxx" or plain "xxx"
   const tok = raw.replace(/^Bearer\s+/i, '').trim();
-  if (config.adminToken && tok === config.adminToken) return ROLE.ADMIN;
-  if (config.viewToken && tok === config.viewToken) return ROLE.VIEWER;
+  if (config.adminToken && safeEq(tok, config.adminToken)) return ROLE.ADMIN;
+  if (config.viewToken && safeEq(tok, config.viewToken)) return ROLE.VIEWER;
   return null;
 }
 

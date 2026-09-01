@@ -4,6 +4,29 @@
 import path from 'node:path';
 import fs from 'node:fs';
 
+// Validate the sub-path that the app is served under. Must start
+// with "/" and contain only URL-safe characters. Without this check
+// a misconfigured `BASE_PATH=//evil.com` would produce protocol-
+// relative URLs that leak User-Agent / IP to an attacker, and a
+// `BASE_PATH=admin` (no slash) would confuse Next.js's router.
+// See AUDIT-REPORT.md M-6.
+function validateBasePath(value, name) {
+  if (!value) return '';
+  if (!/^\/[a-zA-Z0-9_-]+$/.test(value)) {
+    throw new Error(
+      `Invalid ${name}: ${JSON.stringify(value)}. ` +
+      `Must start with "/" and contain only URL-safe characters ` +
+      `([a-zA-Z0-9_-]). Example: "/Marketing".`
+    );
+  }
+  return value;
+}
+
+const VALIDATED_BASE_PATH = validateBasePath(process.env.BASE_PATH, 'BASE_PATH');
+const VALIDATED_NEXT_PUBLIC_BASE_PATH = validateBasePath(
+  process.env.NEXT_PUBLIC_BASE_PATH, 'NEXT_PUBLIC_BASE_PATH',
+);
+
 function required(name) {
   const v = process.env[name];
   if (!v || v.trim() === '') {
@@ -32,6 +55,8 @@ export const config = {
   appBaseUrl: optional('APP_BASE_URL', 'http://localhost:3000'),
   port: parseInt(optional('PORT', '3000'), 10),
 
+  basePath: VALIDATED_BASE_PATH,
+
   databaseUrl: process.env.DATABASE_URL || 'file:./data/dev.db',
   databaseFile: (() => {
     const url = process.env.DATABASE_URL || 'file:./data/dev.db';
@@ -45,6 +70,17 @@ export const config = {
 
   adminToken: required('ADMIN_TOKEN'),
   viewToken: required('VIEW_TOKEN'),
+
+  // Secret used to sign the role cookie (HMAC-SHA256). Required in
+  // production so a missing value can never ship to IT. In
+  // development we let it slide (and signedCookie.js will throw
+  // when the cookie is actually used) so a fresh clone can boot
+  // for non-auth code paths.
+  cookieSecret:
+    process.env.COOKIE_SECRET ||
+    (process.env.NODE_ENV === 'production'
+      ? (() => { throw new Error('COOKIE_SECRET is required in production. Generate with `openssl rand -hex 32`.'); })()
+      : ''),
 
   roleCookieName: optional('ROLE_COOKIE_NAME', 'pp_role'),
 };

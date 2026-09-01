@@ -9,6 +9,15 @@ export default function LoginForm() {
   const params = useSearchParams();
   const next = params.get('next') || '/';
 
+  // Open-redirect protection (AUDIT-REPORT.md M-1). Only accept a
+  // single leading slash, and reject protocol-relative URLs
+  // (`//evil.com`) and absolute URLs (`https://evil.com`).
+  const safeNext = (() => {
+    if (typeof next !== 'string') return '/';
+    if (!next.startsWith('/') || next.startsWith('//')) return '/';
+    return next;
+  })();
+
   const [adminToken, setAdminToken] = useState('');
   const [viewToken, setViewToken]   = useState('');
   const [error, setError] = useState('');
@@ -31,8 +40,10 @@ export default function LoginForm() {
       if (res.ok) {
         // Admins go straight to /admin (unless they were trying to land
         // somewhere else). Viewers go wherever the page redirected from
-        // (or the marketing home).
-        const dest = role === 'admin' ? (next === '/' ? '/admin' : next) : next;
+        // (or the marketing home). The dest is always a single-leading-
+        // slash path; absolute and protocol-relative URLs were rejected
+        // above.
+        const dest = role === 'admin' ? (safeNext === '/' ? '/admin' : safeNext) : safeNext;
         router.push(dest);
         router.refresh();
       } else {

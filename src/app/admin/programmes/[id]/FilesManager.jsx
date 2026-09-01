@@ -7,9 +7,11 @@
 //   - UPLOAD: shows a file picker, sends multipart/form-data
 //   - LINK / FOLDER: shows a URL field, sends application/json
 //
-// All three types use the same displayName, category, and caption fields.
+// All three types use the same displayName, category, caption, and
+// isPublic fields. isPublic controls whether non-admin viewers can
+// fetch the file (see AUDIT-REPORT.md M-2).
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   FILE_CATEGORY_LABEL, FILE_CATEGORY_ICON,
@@ -19,16 +21,32 @@ import { withBase } from '@/lib/basePath';
 
 const CATEGORIES = ['COVER_IMAGE', 'VIDEO', 'PHOTO', 'ARTICLE', 'RESOURCE'];
 
+// Default isPublic per category: covers are private (admins only),
+// everything else is public. Matches the backfill in the migration
+// and the default in src/app/api/admin/programmes/[id]/files/route.js.
+function defaultIsPublic(category) {
+  return category !== 'COVER_IMAGE';
+}
+
 export default function FilesManager({ programmeId, files }) {
   const router = useRouter();
   const inputRef = useRef(null);
   const [type, setType] = useState('UPLOAD');
   const [category, setCategory] = useState('VIDEO');
+  // isPublic tracks the checkbox. When the user changes category
+  // we reset it to the category default to avoid the surprise of
+  // e.g. a private VIDEO being uploaded as a private COVER_IMAGE
+  // by accident.
+  const [isPublic, setIsPublic] = useState(() => defaultIsPublic('VIDEO'));
   const [uploading, setUploading] = useState(false);
   const [err, setErr] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [caption, setCaption] = useState('');
   const [url, setUrl] = useState('');
+
+  useEffect(() => {
+    setIsPublic(defaultIsPublic(category));
+  }, [category]);
 
   // Group by type first, then category (so UPLOAD shows first)
   const grouped = {};
@@ -53,6 +71,7 @@ export default function FilesManager({ programmeId, files }) {
         form.append('category', category);
         if (displayName) form.append('displayName', displayName);
         if (caption) form.append('caption', caption);
+        form.append('isPublic', isPublic ? 'true' : 'false');
         const res = await fetch(withBase(`/api/admin/programmes/${programmeId}/files`), {
           method: 'POST',
           body: form,
@@ -162,6 +181,23 @@ export default function FilesManager({ programmeId, files }) {
           />
         </div>
 
+        <div className="mb-3 flex items-start gap-2">
+          <input
+            id="isPublic"
+            type="checkbox"
+            checked={isPublic}
+            onChange={e => setIsPublic(e.target.checked)}
+            className="mt-1 h-4 w-4"
+          />
+          <label htmlFor="isPublic" className="text-sm text-gray-700">
+            <span className="font-semibold">Public</span>
+            <span className="block text-xs text-gray-500">
+              Viewers can download this file. Uncheck to keep it admin-only
+              (useful for cover images, internal memos, drafts).
+            </span>
+          </label>
+        </div>
+
         {type === 'UPLOAD' ? (
           <div>
             <input
@@ -229,11 +265,16 @@ export default function FilesManager({ programmeId, files }) {
                         </a>
                       )}
                       {f.caption && <p className="text-xs text-gray-500">{f.caption}</p>}
-                      <p className="text-xs text-gray-400">
-                        {FILE_CATEGORY_LABEL[f.category]}
-                        {f.type === 'UPLOAD' && f.originalName && ` · ${f.originalName}`}
-                        {f.type === 'UPLOAD' && f.sizeBytes && ` · ${formatBytes(f.sizeBytes)}`}
-                        {f.type !== 'UPLOAD' && f.url && ` · ${shortUrl(f.url)}`}
+                      <p className="text-xs text-gray-400 flex flex-wrap items-center gap-x-1.5">
+                        <span>{FILE_CATEGORY_LABEL[f.category]}</span>
+                        {f.type === 'UPLOAD' && f.originalName && <span>· {f.originalName}</span>}
+                        {f.type === 'UPLOAD' && f.sizeBytes && <span>· {formatBytes(f.sizeBytes)}</span>}
+                        {f.type !== 'UPLOAD' && f.url && <span>· {shortUrl(f.url)}</span>}
+                        <span className={`ml-1 inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold ${
+                          f.isPublic ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-200 text-gray-700'
+                        }`} title={f.isPublic ? 'Viewers can download this file' : 'Admin only — viewers get 404'}>
+                          {f.isPublic ? 'Public' : 'Private'}
+                        </span>
                       </p>
                     </div>
                     <button onClick={() => deleteFile(f.id)} className="text-xs text-red-600 hover:text-red-800 shrink-0">
