@@ -5,6 +5,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { withBase } from '@/lib/basePath';
 
 export default function DeleteButton({ id, name }) {
   const router = useRouter();
@@ -21,7 +22,7 @@ export default function DeleteButton({ id, name }) {
     if (!ok) return;
     setBusy(true);
     try {
-      const res = await fetch(`/api/admin/programmes/${id}`, { method: 'DELETE' });
+      const res = await fetch(withBase(`/api/admin/programmes/${id}`), { method: 'DELETE' });
       if (res.ok) {
         router.refresh();
       } else {

@@ -309,8 +309,19 @@ When the app is rebuilt with these vars:
 | API | `https://edfutures.ycyw.com/Marketing/api/...` |
 | Programme detail | `https://edfutures.ycyw.com/Marketing/programmes/<id>` |
 
-The auth middleware, login form, and file links all update automatically
-to use the sub-path.
+How each kind of URL gets the prefix:
+
+- **Handled by Next.js itself** — `<Link>`, `router.push()`, server-side
+  `redirect()`, `NextResponse.redirect()` in the middleware, `_next/*`
+  assets, and the `next/font/local` face. Nothing to do.
+- **Handled by `withBase()`** (`src/lib/basePath.js`, reads
+  `NEXT_PUBLIC_BASE_PATH`) — everything where the app builds a URL string
+  by hand: every client-side `fetch('/api/...')`, plain `<a href>`, and
+  `<img src>`.
+
+> **When adding code:** `basePath` does **not** rewrite `fetch()`. A bare
+> `fetch('/api/...')` in a client component works at the root but 404s
+> under a sub-path. Always wrap it: `fetch(withBase('/api/...'))`.
 
 ### What the reverse proxy must do
 
@@ -350,7 +361,20 @@ curl -fsS -o /dev/null -w "%{http_code}\n" https://edfutures.ycyw.com/Marketing/
 
 # Asset paths in the served HTML must start with /Marketing/_next/
 curl -fsS https://edfutures.ycyw.com/Marketing/login | grep -oE 'href="/Marketing/_next[^"]*"' | head -1
+
+# The login POST must land on the sub-path, not the domain root
+curl -fsS -o /dev/null -w "%{http_code}\n" -X POST \
+  -H 'Content-Type: application/json' \
+  -d '{"token":"<VIEW_TOKEN>","role":"viewer"}' \
+  https://edfutures.ycyw.com/Marketing/api/auth/login
+# -> 200
 ```
+
+The curl checks above only prove the server side. **Also open the site in a
+browser and actually sign in** — the login button, uploads, and deletes all
+go through client-side `fetch()`, which curl never exercises. If the network
+tab shows a request to `/api/...` without the `/Marketing` prefix, that call
+site is missing its `withBase()` wrapper.
 
 If the asset URLs don't include `/Marketing/`, the build wasn't done
 with `BASE_PATH` set — re-run the build with the env vars in place.

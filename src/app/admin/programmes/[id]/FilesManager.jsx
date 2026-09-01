@@ -53,7 +53,7 @@ export default function FilesManager({ programmeId, files }) {
         form.append('category', category);
         if (displayName) form.append('displayName', displayName);
         if (caption) form.append('caption', caption);
-        const res = await fetch(`/api/admin/programmes/${programmeId}/files`, {
+        const res = await fetch(withBase(`/api/admin/programmes/${programmeId}/files`), {
           method: 'POST',
           body: form,
         });
@@ -80,7 +80,7 @@ export default function FilesManager({ programmeId, files }) {
     setUploading(true);
     setErr('');
     try {
-      const res = await fetch(`/api/admin/programmes/${programmeId}/files`, {
+      const res = await fetch(withBase(`/api/admin/programmes/${programmeId}/files`), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -105,7 +105,7 @@ export default function FilesManager({ programmeId, files }) {
 
   async function deleteFile(id) {
     if (!confirm('Delete this file/link/folder? This cannot be undone.')) return;
-    const res = await fetch(`/api/admin/programmes/${programmeId}/files/${id}`, { method: 'DELETE' });
+    const res = await fetch(withBase(`/api/admin/programmes/${programmeId}/files/${id}`), { method: 'DELETE' });
     if (res.ok) router.refresh();
     else setErr('Failed to delete');
   }

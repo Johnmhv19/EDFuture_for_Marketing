@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { LEVEL_LABEL, LEVEL_SHORT, LEVEL_ORDER, PATHWAY_LABEL } from '@/lib/labels';
+import { withBase } from '@/lib/basePath';
 
 const LEVELS = LEVEL_ORDER;
 const PATHWAYS = Object.keys(PATHWAY_LABEL);
@@ -31,7 +32,7 @@ export default function NewProgrammeForm() {
     setBusy(true);
     setErr('');
     try {
-      const res = await fetch('/api/admin/programmes', {
+      const res = await fetch(withBase('/api/admin/programmes'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),

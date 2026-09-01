@@ -9,11 +9,15 @@
 //   - Everything else (home, programme detail) requires ANY auth.
 //
 // Sub-path deployment: when the app is served under a sub-directory
-// (e.g. /Marketing/api/healthz), Next.js's req.nextUrl.pathname still
-// includes the basePath, so we strip it before doing route checks.
+// (e.g. /Marketing/api/healthz), Next.js has ALREADY removed the
+// basePath from req.nextUrl.pathname by the time middleware runs (it
+// lives on req.nextUrl.basePath instead), and re-applies it when a
+// cloned nextUrl is passed to NextResponse.redirect(). So the route
+// prefixes below are always matched against root-relative paths.
+// stripBase() is a belt-and-braces no-op for that normal case; it only
+// does anything if a future Next version stops normalising the path.
 // BASE_PATH is a build-time env var (must match next.config.mjs's
-// basePath setting) — we read it here so the same middleware works
-// for both root and sub-path deployments.
+// basePath setting).
 
 import { NextResponse } from 'next/server';
 
@@ -33,7 +37,7 @@ const ADMIN_PREFIXES = ['/admin', '/api/admin'];
 
 // Strip the basePath from the start of a pathname. Returns the
 // basePath-stripped path, or the original if it doesn't start with
-// the basePath.
+// the basePath (which is the normal case — see the note above).
 function stripBase(pathname) {
   if (BASE_PATH && pathname.startsWith(BASE_PATH)) {
     const stripped = pathname.slice(BASE_PATH.length);

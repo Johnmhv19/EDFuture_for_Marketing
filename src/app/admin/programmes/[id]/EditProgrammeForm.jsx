@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { LEVEL_LABEL, LEVEL_SHORT, LEVEL_ORDER, PATHWAY_LABEL, PATHWAY_COLOR } from '@/lib/labels';
+import { withBase } from '@/lib/basePath';
 
 const LEVELS = LEVEL_ORDER;
 const PATHWAYS = Object.keys(PATHWAY_LABEL);
@@ -33,7 +34,7 @@ export default function EditProgrammeForm({ programme }) {
     setErr('');
     setOk(false);
     try {
-      const res = await fetch(`/api/admin/programmes/${programme.id}`, {
+      const res = await fetch(withBase(`/api/admin/programmes/${programme.id}`), {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),
@@ -56,7 +57,7 @@ export default function EditProgrammeForm({ programme }) {
     if (!confirm(`Delete "${programme.name}"? This removes all its files too. This cannot be undone.`)) return;
     setBusy(true);
     try {
-      const res = await fetch(`/api/admin/programmes/${programme.id}`, { method: 'DELETE' });
+      const res = await fetch(withBase(`/api/admin/programmes/${programme.id}`), { method: 'DELETE' });
       if (res.ok) {
         router.push('/admin/programmes');
         router.refresh();
