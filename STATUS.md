@@ -13,11 +13,11 @@ user_path: ~/EDFuture_for_Marketing/
 > The YAML frontmatter above is the canonical identifier — always check
 > `project:` matches before treating this file as context.
 
-_Last updated: 2026-08-31 (end of session)_
+_Last updated: 2026-09-01_
 
 ---
 
-**Status: end of session, picking up later.** All requested features built and tested. User confirmed external link/folder support works on their Mac (added a Bilibili link, got it back to me as a 201 + rendered correctly on the public page). User said "we will continue later" — no new work this turn beyond this STATUS update.
+**Status: handoff to IT imminent.** All requested features built and tested. User confirmed external link/folder support works on their Mac. IT has confirmed SQLite is acceptable. IT collaborator invitation sent, pending their accept. User wants to publish soon so colleagues can start populating. Next step: hand `DEPLOY.md` to IT once collaborator accepts.
 
 ## At a glance
 
@@ -41,7 +41,7 @@ _Last updated: 2026-08-31 (end of session)_
 | **DB** | 33 programmes · **0 files** uploaded (1 test link tried and cleaned up) |
 | **Latest commit** | 2026-08-31 — "Support external links and folders" |
 | **External LINK/FOLDER type** | ✅ Built, migration applied, API + UI working — user confirmed on their Mac |
-| **GitHub collaborator added?** | ❌ `shouli.pu@ycyw.cn` not yet added (IT, user's action) |
+| **GitHub collaborator added?** | ⏳ Invite sent to `shouli.pu@ycyw.cn` on 2026-09-01, pending their accept |
 | **Production deployed?** | ❌ IT hasn't deployed yet |
 | **Demo (2026-08-28)** | ❓ Still unknown — user never reported back |
 | **Git auth on user's Mac** | ❌ VPN blocks HTTPS git; user uses `curl` to fetch files from GitHub instead |
@@ -67,11 +67,12 @@ _Last updated: 2026-08-31 (end of session)_
 ## Open tasks (check off as we go)
 
 ### User action items
-- [ ] Add IT collaborator `shouli.pu@ycyw.cn` to the GitHub repo (Settings → Collaborators)
+- [x] Add IT collaborator `shouli.pu@ycyw.cn` to the GitHub repo (invite sent 2026-09-01, **awaiting their accept**)
 - [ ] (Optional) Revoke the fine-grained PAT used for the initial push — `https://github.com/settings/tokens`
 - [ ] Fix git auth on the Mac (so `git pull` works) — VPN blocks HTTPS git; options are GitHub CLI auth or an SSH key
 - [ ] Upload real programme files (covers, videos, photos, articles) via the admin UI
 - [ ] Add a few real **external links/folders** via the new LINK/FOLDER type (e.g. paste a YouTube recap URL on the first programme, try it out)
+- [ ] (Optional) Cleanup: remove the two `localhost:3000` / `3000` defaults in `src/lib/config.js` for full IT cleanliness
 
 ### IT action items (hand them `DEPLOY.md`)
 - [ ] Provision `/opt/ycyw-program-platform/` (app) + `/var/data/ycyw-program-platform/` (DB + uploads)
@@ -141,3 +142,11 @@ _Last updated: 2026-08-31 (end of session)_
   - Public programme detail: shows "Link ↗" / "Folder ↗" badges for external items
 - **PM**: User hit Prisma `originalName: String` error when adding a link — DB was migrated but the Prisma client wasn't regenerated. Fix: `npx prisma migrate deploy && npx prisma generate`. Worked after that. User confirmed the feature works.
 - **End of session**: user said "we will continue later". No new requests. Closing out cleanly.
+
+### 2026-09-01 — handoff prep
+- **AM**: User returned with a clear goal: publish the website so colleagues can start populating programmes. Two prerequisites to check first: (1) IT collaborator must be added, (2) confirm SQLite is acceptable to IT
+- **AM**: User sent the collaborator invite to `shouli.pu@ycyw.cn` — pending accept. Verified via API: user not in collaborators list yet (as expected for a pending invite)
+- **AM**: User confirmed IT is OK with SQLite (not MySQL 8.0). No code change needed
+- **AM**: Audited the project against IT's published checklist. Findings: ✅ all of the deployment-relevant requirements are met (idempotent migrations, env-configurable paths, .env.example, DEPLOY.md, health check, lockfile, .gitignore, no hardcoded production values). Two minor items flagged for follow-up: (a) `localhost:3000` / `3000` defaults in `src/lib/config.js` (low priority — only used when env vars unset, production overrides them), (b) data paths in `.env.example` are relative defaults — IT must override to absolute persistent paths in production
+- **AM**: User asked to confirm that "updating won't affect data". Answer: yes, **as long as IT uses persistent paths** for `DATABASE_URL` and `UPLOAD_DIR` outside the build directory. Documented in `DEPLOY.md`. `git pull && npm install && npm run build && pm2 restart` replaces the app code only, not the data directory
+- **Status**: end of session, waiting for IT collaborator to accept. User to hand `DEPLOY.md` to IT once accepted. No code changes this session
