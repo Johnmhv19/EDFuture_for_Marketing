@@ -229,12 +229,12 @@ function LevelCard({ level, programmes }) {
             'radial-gradient(circle at 40% 80%, rgba(255,255,255,0.05) 0, transparent 30%)',
         }}
       >
-        <div className="absolute top-2 left-3 text-white/5 text-[10px] pointer-events-none" style={{ fontFamily: "'Caveat', cursive" }}>~</div>
-        <div className="absolute bottom-3 right-4 text-white/5 text-[12px] pointer-events-none" style={{ fontFamily: "'Caveat', cursive" }}>~</div>
+        <div className="absolute top-2 left-3 text-white/5 text-[10px] pointer-events-none" style={{ fontFamily: "var(--font-caveat), cursive" }}>~</div>
+        <div className="absolute bottom-3 right-4 text-white/5 text-[12px] pointer-events-none" style={{ fontFamily: "var(--font-caveat), cursive" }}>~</div>
         <span
           className="text-white text-4xl"
           style={{
-            fontFamily: "'Caveat', 'Bradley Hand', 'Brush Script MT', cursive",
+            fontFamily: "var(--font-caveat), 'Bradley Hand', 'Brush Script MT', cursive",
             fontWeight: '500',
             textShadow:
               '0 0 1px rgba(255,255,255,0.4),' +

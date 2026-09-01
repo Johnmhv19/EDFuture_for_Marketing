@@ -12,6 +12,11 @@
 
 The app is stateless — the only state is on disk: the SQLite file and the uploads directory. Both are configurable via env vars and **must live outside the build output directory** to survive redeploys.
 
+> **Sub-path deployment** (e.g. served as `https://edfutures.ycyw.com/Marketing/`)
+> is supported via the `BASE_PATH` and `NEXT_PUBLIC_BASE_PATH` env vars — see
+> [§ Sub-path deployment](#sub-path-deployment) below. If you're serving at
+> the domain root (`https://programmes.ycyw.edu/`), skip that section.
+
 ## Prerequisites
 
 | | Version |
@@ -266,7 +271,89 @@ To rotate `ADMIN_TOKEN` or `VIEW_TOKEN`:
 | `ADMIN_TOKEN` | **yes** | — | Bearer token for admin login |
 | `VIEW_TOKEN` | **yes** | — | Bearer token for marketing viewer login |
 | `ROLE_COOKIE_NAME` | no | `pp_role` | Cookie name (only change if collision) |
+| `BASE_PATH` | only for sub-path deploy | `""` (root) | Sub-directory path prefix. Build-time only. See [§ Sub-path deployment](#sub-path-deployment). |
+| `NEXT_PUBLIC_BASE_PATH` | only for sub-path deploy | `""` (root) | Must be the SAME value as `BASE_PATH`. Inlined at build time. |
 | `NOTION_TOKEN` | only for seed | — | One-off Notion integration token for the seed script |
+
+## Sub-path deployment
+
+If the app is served under a sub-directory of another site (e.g.
+`https://edfutures.ycyw.com/Marketing/`), the app must know its sub-path
+at **build time** so all generated URLs include the prefix.
+
+### What you set
+
+Add to `/etc/ycyw-program-platform/.env`:
+
+```bash
+BASE_PATH=/Marketing
+NEXT_PUBLIC_BASE_PATH=/Marketing
+```
+
+Rules:
+- Must start with `/` (e.g. `/Marketing`, not `Marketing`)
+- Must NOT end with `/`
+- Both vars must be set to the same value
+
+### What changes
+
+When the app is rebuilt with these vars:
+
+| Resource | URL |
+|---|---|
+| Home | `https://edfutures.ycyw.com/Marketing/` |
+| Login | `https://edfutures.ycyw.com/Marketing/login` |
+| Health check | `https://edfutures.ycyw.com/Marketing/api/healthz` |
+| Static assets | `https://edfutures.ycyw.com/Marketing/_next/static/...` |
+| Self-hosted Caveat font | `https://edfutures.ycyw.com/Marketing/_next/static/media/...woff2` |
+| API | `https://edfutures.ycyw.com/Marketing/api/...` |
+| Programme detail | `https://edfutures.ycyw.com/Marketing/programmes/<id>` |
+
+The auth middleware, login form, and file links all update automatically
+to use the sub-path.
+
+### What the reverse proxy must do
+
+The upstream proxy (whatever serves `edfutures.ycyw.com`) must:
+1. Route requests for `/Marketing/*` to this Node.js app on port 3000
+2. NOT strip the `/Marketing` prefix when forwarding — the app expects
+   to see `/Marketing/...` in `req.url`
+3. Pass through the original `Host:` header (the app uses it for redirects)
+
+Example Nginx `location` block (if the upstream is Nginx):
+
+```nginx
+location /Marketing/ {
+    proxy_pass http://127.0.0.1:3000;   # NO trailing slash — preserves /Marketing
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_http_version 1.1;
+    # WebSocket not needed; large uploads do (see below)
+    client_max_body_size 520M;           # a little over MAX_UPLOAD_MB
+    proxy_read_timeout 300s;
+    proxy_send_timeout 300s;
+}
+```
+
+### Verification after deploy
+
+```bash
+# Health check (must include the sub-path)
+curl -fsS https://edfutures.ycyw.com/Marketing/api/healthz
+# -> {"ok":true,"ts":"..."}
+
+# Login page (must include the sub-path)
+curl -fsS -o /dev/null -w "%{http_code}\n" https://edfutures.ycyw.com/Marketing/login
+# -> 200
+
+# Asset paths in the served HTML must start with /Marketing/_next/
+curl -fsS https://edfutures.ycyw.com/Marketing/login | grep -oE 'href="/Marketing/_next[^"]*"' | head -1
+```
+
+If the asset URLs don't include `/Marketing/`, the build wasn't done
+with `BASE_PATH` set — re-run the build with the env vars in place.
 
 ## Future (not implemented yet)
 

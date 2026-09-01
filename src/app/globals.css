@@ -17,14 +17,10 @@
 
 html { scroll-behavior: smooth; }
 
-/* Self-hosted Caveat — used for the chalk-on-blackboard level cards */
-@font-face {
-  font-family: 'Caveat';
-  font-style: normal;
-  font-weight: 500;
-  font-display: swap;
-  src: url('/fonts/caveat.woff2') format('woff2');
-}
+/* Self-hosted Caveat — loaded via next/font/local in the root layout.
+   See src/app/layout.jsx. The @font-face rule was removed because
+   Next.js does not rewrite CSS @font-face URLs for basePath; using
+   next/font/local handles sub-directory deployments automatically. */
 
 body {
   background: var(--color-bg);

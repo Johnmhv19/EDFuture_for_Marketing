@@ -7,10 +7,18 @@
 //   - Admin routes (/admin/*, /api/admin/*) require the 'admin' cookie.
 //   - Auth-gated read endpoints (/api/files/*) require 'admin' or 'viewer'.
 //   - Everything else (home, programme detail) requires ANY auth.
+//
+// Sub-path deployment: when the app is served under a sub-directory
+// (e.g. /Marketing/api/healthz), Next.js's req.nextUrl.pathname still
+// includes the basePath, so we strip it before doing route checks.
+// BASE_PATH is a build-time env var (must match next.config.mjs's
+// basePath setting) — we read it here so the same middleware works
+// for both root and sub-path deployments.
 
 import { NextResponse } from 'next/server';
 
 const COOKIE = process.env.ROLE_COOKIE_NAME || 'pp_role';
+const BASE_PATH = process.env.BASE_PATH || '';
 
 const PUBLIC_PREFIXES = [
   '/login',
@@ -23,8 +31,19 @@ const PUBLIC_PREFIXES = [
 
 const ADMIN_PREFIXES = ['/admin', '/api/admin'];
 
+// Strip the basePath from the start of a pathname. Returns the
+// basePath-stripped path, or the original if it doesn't start with
+// the basePath.
+function stripBase(pathname) {
+  if (BASE_PATH && pathname.startsWith(BASE_PATH)) {
+    const stripped = pathname.slice(BASE_PATH.length);
+    return stripped.startsWith('/') ? stripped : '/' + stripped;
+  }
+  return pathname;
+}
+
 export function middleware(req) {
-  const { pathname } = req.nextUrl;
+  const pathname = stripBase(req.nextUrl.pathname);
   const role = req.cookies.get(COOKIE)?.value || null;
 
   if (PUBLIC_PREFIXES.some(p => pathname.startsWith(p))) {
@@ -39,6 +58,8 @@ export function middleware(req) {
           headers: { 'Content-Type': 'application/json' },
         });
       }
+      // Redirect to /login. The `next` param is the basePath-stripped
+      // path; the login form's router.push will re-apply the basePath.
       const url = req.nextUrl.clone();
       url.pathname = '/login';
       url.searchParams.set('next', pathname);

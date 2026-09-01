@@ -15,6 +15,7 @@ import {
   FILE_CATEGORY_LABEL, FILE_CATEGORY_ICON,
   FILE_TYPE_LABEL, FILE_TYPE_ICON, FILE_TYPE_ORDER,
 } from '@/lib/labels';
+import { withBase } from '@/lib/basePath';
 
 const CATEGORIES = ['COVER_IMAGE', 'VIDEO', 'PHOTO', 'ARTICLE', 'RESOURCE'];
 
@@ -219,7 +220,7 @@ export default function FilesManager({ programmeId, files }) {
                     <div className="text-xl shrink-0">{FILE_CATEGORY_ICON[f.category]}</div>
                     <div className="flex-1 min-w-0">
                       {f.type === 'UPLOAD' ? (
-                        <a href={`/api/files/${f.id}`} target="_blank" className="font-medium text-blue-700 hover:underline truncate block">
+                        <a href={withBase(`/api/files/${f.id}`)} target="_blank" className="font-medium text-blue-700 hover:underline truncate block">
                           {f.displayName}
                         </a>
                       ) : (

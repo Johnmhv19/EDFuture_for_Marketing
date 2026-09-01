@@ -11,6 +11,7 @@ import {
   FILE_CATEGORY_LABEL, FILE_CATEGORY_ICON, PUBLIC_FILE_CATEGORIES,
   STATUS_COLOR,
 } from '@/lib/labels';
+import { withBase } from '@/lib/basePath';
 
 export const dynamic = 'force-dynamic';
 
@@ -72,7 +73,7 @@ export default async function ProgrammePage({ params }) {
           <div className="md:col-span-2 space-y-6">
             {cover && (
               <div className="card overflow-hidden">
-                <img src={`/api/files/${cover.id}`} alt={cover.displayName} className="w-full h-auto" />
+                <img src={withBase(`/api/files/${cover.id}`)} alt={cover.displayName} className="w-full h-auto" />
               </div>
             )}
 
@@ -96,7 +97,7 @@ export default async function ProgrammePage({ params }) {
                   <ul className="divide-y divide-gray-100">
                     {items.map(f => {
                       const isExternal = f.type === 'LINK' || f.type === 'FOLDER';
-                      const href = isExternal ? f.url : `/api/files/${f.id}`;
+                      const href = isExternal ? f.url : withBase(`/api/files/${f.id}`);
                       const icon = f.type === 'FOLDER' ? '📁' : f.type === 'LINK' ? '🔗' : FILE_CATEGORY_ICON[f.category];
                       const meta = isExternal
                         ? shortUrl(f.url)
@@ -122,7 +123,7 @@ export default async function ProgrammePage({ params }) {
                             </span>
                           ) : (
                             <a
-                              href={href}
+                              href={withBase(`/api/files/${f.id}`)}
                               download
                               className="btn btn-ghost"
                             >

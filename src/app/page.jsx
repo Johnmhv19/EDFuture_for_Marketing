@@ -79,8 +79,8 @@ export default async function HomePage() {
             'radial-gradient(circle at 40% 80%, rgba(255,255,255,0.05) 0, transparent 30%)',
         }}
       >
-        <div className="absolute top-4 left-8 text-white/5 text-sm pointer-events-none" style={{ fontFamily: "'Caveat', cursive" }}>~</div>
-        <div className="absolute bottom-6 right-10 text-white/5 text-lg pointer-events-none" style={{ fontFamily: "'Caveat', cursive" }}>~</div>
+        <div className="absolute top-4 left-8 text-white/5 text-sm pointer-events-none" style={{ fontFamily: "var(--font-caveat), cursive" }}>~</div>
+        <div className="absolute bottom-6 right-10 text-white/5 text-lg pointer-events-none" style={{ fontFamily: "var(--font-caveat), cursive" }}>~</div>
 
         <div className="max-w-5xl mx-auto px-6 py-8 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
           <div>
@@ -88,7 +88,7 @@ export default async function HomePage() {
               className="text-xs font-bold uppercase tracking-wider"
               style={{
                 color: 'rgba(255,255,255,0.6)',
-                fontFamily: "'Caveat', cursive",
+                fontFamily: "var(--font-caveat), cursive",
                 fontSize: '1.1rem',
                 fontWeight: '500',
                 letterSpacing: '0.05em',
@@ -100,7 +100,7 @@ export default async function HomePage() {
             <h1
               className="mt-1 text-white"
               style={{
-                fontFamily: "'Caveat', 'Bradley Hand', 'Brush Script MT', cursive",
+                fontFamily: "var(--font-caveat), 'Bradley Hand', 'Brush Script MT', cursive",
                 fontWeight: '700',
                 fontSize: '3.25rem',
                 lineHeight: '1',
@@ -117,7 +117,7 @@ export default async function HomePage() {
               className="mt-1"
               style={{
                 color: 'rgba(255,255,255,0.7)',
-                fontFamily: "'Caveat', cursive",
+                fontFamily: "var(--font-caveat), cursive",
                 fontSize: '1.15rem',
                 textShadow: '0 0 1px rgba(255,255,255,0.2)',
               }}
@@ -136,7 +136,7 @@ export default async function HomePage() {
                 <span
                   className="text-white"
                   style={{
-                    fontFamily: "'Caveat', cursive",
+                    fontFamily: "var(--font-caveat), cursive",
                     fontSize: '2rem',
                     fontWeight: '700',
                     textShadow: '0 0 1px rgba(255,255,255,0.3), 0 0 6px rgba(255,255,255,0.15)',
@@ -149,7 +149,7 @@ export default async function HomePage() {
                   className="uppercase"
                   style={{
                     color: 'rgba(255,255,255,0.65)',
-                    fontFamily: "'Caveat', cursive",
+                    fontFamily: "var(--font-caveat), cursive",
                     fontSize: '0.95rem',
                     textShadow: '0 0 1px rgba(255,255,255,0.2)',
                   }}
