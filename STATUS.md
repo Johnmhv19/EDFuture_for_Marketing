@@ -13,11 +13,11 @@ user_path: ~/EDFuture_for_Marketing/
 > The YAML frontmatter above is the canonical identifier — always check
 > `project:` matches before treating this file as context.
 
-_Last updated: 2026-09-01_
+_Last updated: 2026-09-01 (midday)
 
 ---
 
-**Status: handoff to IT imminent.** All requested features built and tested. User confirmed external link/folder support works on their Mac. IT has confirmed SQLite is acceptable. IT collaborator invitation sent, pending their accept. User wants to publish soon so colleagues can start populating. Next step: hand `DEPLOY.md` to IT once collaborator accepts.
+**Status: handoff to IT imminent.** All requested features built and tested. User confirmed external link/folder support works on their Mac. IT has confirmed SQLite is acceptable. IT collaborator invitation sent, pending their accept. **New today: sub-path deployment support** (for serving at `https://edfutures.ycyw.com/Marketing/`). Tested both modes locally. Next step: hand `DEPLOY.md` to IT once collaborator accepts.
 
 ## At a glance
 
@@ -149,4 +149,19 @@ _Last updated: 2026-09-01_
 - **AM**: User confirmed IT is OK with SQLite (not MySQL 8.0). No code change needed
 - **AM**: Audited the project against IT's published checklist. Findings: ✅ all of the deployment-relevant requirements are met (idempotent migrations, env-configurable paths, .env.example, DEPLOY.md, health check, lockfile, .gitignore, no hardcoded production values). Two minor items flagged for follow-up: (a) `localhost:3000` / `3000` defaults in `src/lib/config.js` (low priority — only used when env vars unset, production overrides them), (b) data paths in `.env.example` are relative defaults — IT must override to absolute persistent paths in production
 - **AM**: User asked to confirm that "updating won't affect data". Answer: yes, **as long as IT uses persistent paths** for `DATABASE_URL` and `UPLOAD_DIR` outside the build directory. Documented in `DEPLOY.md`. `git pull && npm install && npm run build && pm2 restart` replaces the app code only, not the data directory
-- **Status**: end of session, waiting for IT collaborator to accept. User to hand `DEPLOY.md` to IT once accepted. No code changes this session
+- **Midday**: IT told user the app will be deployed as a sub-directory of `https://edfutures.ycyw.com/`, accessible at `https://edfutures.ycyw.com/Marketing/`. User asked: is the app compatible, or what needs to change?
+- **Midday**: Added full sub-path support. Changes:
+  - `next.config.mjs`: `basePath: process.env.BASE_PATH || ''` (build-time)
+  - `src/lib/basePath.js`: new `withBase()` helper for the few plain `<a>` and `<img>` tags
+  - `src/middleware.js`: strips basePath before doing route checks; lets Next.js re-apply the prefix on redirects
+  - `src/app/layout.jsx`: switched self-hosted Caveat font from CSS `@font-face` to `next/font/local` (handles basePath correctly; CSS @font-face URLs are NOT auto-rewritten for basePath by Next.js)
+  - All hardcoded `fontFamily: "'Caveat', ..."` → `fontFamily: "var(--font-caveat), ..."` so the font variable from next/font works
+  - `.env.example`: documented `BASE_PATH` and `NEXT_PUBLIC_BASE_PATH`
+  - `DEPLOY.md`: new "Sub-path deployment" section with the env vars, Nginx `location` example, and verification commands
+- **Midday**: Tested both modes locally:
+  - Default (no basePath): `/api/healthz` → 200, all assets at root
+  - Sub-path (`/Marketing`): `/Marketing/api/healthz` → 200, HTML asset paths prefixed with `/Marketing/_next/...`, font URL is `/Marketing/_next/static/media/...woff2`, auth redirects go to `/Marketing/login?next=...` (no double basePath)
+- **Status**: sub-path changes done and pushed. Hand-off list:
+  1. User: pull the latest from GitHub (`curl -o DEPLOY.md https://raw.githubusercontent.com/.../DEPLOY.md` or `git pull` if auth works)
+  2. Wait for `shouli.pu@ycyw.cn` to accept the GitHub invite
+  3. Hand `DEPLOY.md` to IT — they'll need to set `BASE_PATH=/Marketing` in `.env` and rebuild before starting the service
