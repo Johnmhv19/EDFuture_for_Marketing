@@ -10,7 +10,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { LEVEL_ORDER, PATHWAY_LABEL } from '@/lib/labels';
-import { requireString, stringOrNull, ValidationError } from '@/lib/validate';
+import { requireString, stringOrNull, dateOrNull, validateDateRange, ValidationError } from '@/lib/validate';
 
 const VALID_LEVELS = LEVEL_ORDER;
 const VALID_PATHWAYS = Object.keys(PATHWAY_LABEL);
@@ -23,7 +23,7 @@ export async function POST(req) {
     let body;
     try { body = await req.json(); } catch { return bad('Invalid JSON'); }
 
-    let name, level, pathway, status, yearLevel, partners, venue, dates, description;
+    let name, level, pathway, status, yearLevel, partners, venue, dates, description, startDate, endDate;
     try {
       name = requireString(body.name, 'name');
       level = requireString(body.level, 'level');
@@ -34,6 +34,9 @@ export async function POST(req) {
       venue = stringOrNull(body.venue);
       dates = stringOrNull(body.dates);
       description = stringOrNull(body.description);
+      startDate = dateOrNull(body.startDate);
+      endDate = dateOrNull(body.endDate);
+      validateDateRange(startDate, endDate);
     } catch (e) {
       if (e instanceof ValidationError) return bad(e.message);
       throw e;
@@ -52,6 +55,7 @@ export async function POST(req) {
         data: {
           name, level, pathway, status,
           yearLevel, partners, venue, dates, description,
+          startDate, endDate,
         },
       });
     } catch (e) {

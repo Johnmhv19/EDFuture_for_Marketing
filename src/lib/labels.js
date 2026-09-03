@@ -122,3 +122,139 @@ export const UPLOADED_BY_BADGE = {
 };
 
 export const UPLOADED_BY_ORDER = ['admin', 'viewer'];
+
+// -----------------------------------------------------------------
+// Date formatting helpers (structured startDate / endDate)
+// -----------------------------------------------------------------
+// Used by the programme detail page ("Dates" fact) and the home page
+// "Coming up" / "Recent past" sections. All inputs may be a Date
+// object, an ISO string, or null. Null = TBD (no scheduled date).
+//
+// We use Intl.DateTimeFormat with en-US so the output is consistent
+// across server (Node) and client (browser) runtimes. The output
+// is intentionally plain ASCII ("Mon DD, YYYY" / "Sep 5") so it
+// renders the same in every locale.
+
+const MONTH_DAY = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
+const MONTH_DAY_YEAR = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
+
+function toDate(d) {
+  if (!d) return null;
+  if (d instanceof Date) return Number.isNaN(d.getTime()) ? null : d;
+  if (typeof d === 'string') {
+    // Server sends Date as ISO; client sometimes sees raw YYYY-MM-DD.
+    const parsed = new Date(d.length === 10 ? d + 'T00:00:00.000Z' : d);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+  return null;
+}
+
+function sameYear(a, b) {
+  return a && b && a.getUTCFullYear() === b.getUTCFullYear();
+}
+
+// "Mon DD" or "Mon DD, YYYY" (year only if non-current).
+// `currentYear` defaults to this year; pass null to always include
+// the year. Used by the programme detail "Dates" row.
+export function formatShortDate(d, { currentYear } = {}) {
+  const dt = toDate(d);
+  if (!dt) return '';
+  const yr = currentYear === undefined ? new Date().getUTCFullYear() : currentYear;
+  return dt.getUTCFullYear() === yr
+    ? MONTH_DAY.format(dt)
+    : MONTH_DAY_YEAR.format(dt);
+}
+
+// "Mon DD – Mon DD, YYYY" (or full years on both sides if they
+// differ). If both dates are in the same year, the year is shown
+// only once at the end. Either input may be null.
+export function formatDateRange(startDate, endDate, { currentYear } = {}) {
+  const s = toDate(startDate);
+  const e = toDate(endDate);
+  if (s && !e) return formatShortDate(s, { currentYear });
+  if (!s && e) return formatShortDate(e, { currentYear });
+  if (!s && !e) return '';
+  if (s.getTime() === e.getTime()) return formatShortDate(s, { currentYear });
+  const yr = currentYear === undefined ? new Date().getUTCFullYear() : currentYear;
+  if (sameYear(s, e) && s.getUTCFullYear() === yr) {
+    // e.g. "Sep 5 – Sep 9, 2027"
+    const left = MONTH_DAY.format(s);
+    const right = MONTH_DAY_YEAR.format(e);
+    return `${left} \u2013 ${right}`;
+  }
+  // Different years, or both outside the current year — show
+  // full dates on both sides.
+  const left = MONTH_DAY_YEAR.format(s);
+  const right = MONTH_DAY_YEAR.format(e);
+  return `${left} \u2013 ${right}`;
+}
+
+// "starts DD MMM" / "ends DD MMM" / "starts DD MMM YYYY" — used by
+// the home page "Coming up" / "Recent past" section rows. Returns
+// '' if the date is missing.
+export function formatRelativeStartLabel(d, { currentYear } = {}) {
+  const dt = toDate(d);
+  if (!dt) return '';
+  const yr = currentYear === undefined ? new Date().getUTCFullYear() : currentYear;
+  const tail = dt.getUTCFullYear() === yr
+    ? MONTH_DAY.format(dt)
+    : MONTH_DAY_YEAR.format(dt);
+  return `starts ${tail}`;
+}
+
+export function formatRelativeEndLabel(d, { currentYear } = {}) {
+  const dt = toDate(d);
+  if (!dt) return '';
+  const yr = currentYear === undefined ? new Date().getUTCFullYear() : currentYear;
+  const tail = dt.getUTCFullYear() === yr
+    ? MONTH_DAY.format(dt)
+    : MONTH_DAY_YEAR.format(dt);
+  return `ended ${tail}`;
+}
+
+// Returns true if the date is in the current calendar month
+// (server's UTC month, or the supplied `now`). Used to filter
+// "Coming up" / "Recent past" rows. A date in the current month
+// counts as both "coming up" (if it's a startDate) and "recent
+// past" (if it's an endDate).
+export function isInCurrentMonth(d, now) {
+  const dt = toDate(d);
+  if (!dt) return false;
+  const n = now || new Date();
+  return dt.getUTCFullYear() === n.getUTCFullYear() && dt.getUTCMonth() === n.getUTCMonth();
+}
+
+// True if the date is in the current month or any month in the
+// future (relative to `now`, defaulting to the current instant).
+export function isInCurrentMonthOrFuture(d, now) {
+  const dt = toDate(d);
+  if (!dt) return false;
+  const n = now || new Date();
+  // First day of the current month at UTC midnight
+  const monthStart = Date.UTC(n.getUTCFullYear(), n.getUTCMonth(), 1);
+  const dayStart = Date.UTC(dt.getUTCFullYear(), dt.getUTCMonth(), dt.getUTCDate());
+  return dayStart >= monthStart;
+}
+
+// True if the date is in the current month or any month in the
+// past (relative to `now`). Strictly before next month, inclusive
+// of the current month.
+export function isInCurrentMonthOrPast(d, now) {
+  const dt = toDate(d);
+  if (!dt) return false;
+  const n = now || new Date();
+  const monthStart = Date.UTC(n.getUTCFullYear(), n.getUTCMonth(), 1);
+  const nextMonthStart = Date.UTC(n.getUTCFullYear(), n.getUTCMonth() + 1, 1);
+  const dayStart = Date.UTC(dt.getUTCFullYear(), dt.getUTCMonth(), dt.getUTCDate());
+  return dayStart >= monthStart && dayStart < nextMonthStart;
+}
+
+// True if the date is strictly in the past (before the current
+// instant). Used to exclude already-finished programmes from the
+// "Coming up" section.
+export function isInPast(d, now) {
+  const dt = toDate(d);
+  if (!dt) return false;
+  const n = now || new Date();
+  return dt.getTime() < n.getTime();
+}

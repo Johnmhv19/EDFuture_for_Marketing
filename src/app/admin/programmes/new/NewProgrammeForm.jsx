@@ -4,38 +4,67 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { LEVEL_LABEL, LEVEL_SHORT, LEVEL_ORDER, PATHWAY_LABEL } from '@/lib/labels';
 import { withBase } from '@/lib/basePath';
+import { toDateInputValue } from '@/lib/validate';
 
 const LEVELS = LEVEL_ORDER;
 const PATHWAYS = Object.keys(PATHWAY_LABEL);
 const STATUSES = ['Confirmed', 'Planned', 'TBD', 'In development'];
 
+// "TBD" means both startDate and endDate are null. New programmes
+// default to TBD so admins don't have to fill in a date up front
+// just to create a placeholder.
+const INITIAL_TBD = true;
+const INITIAL_FORM = {
+  name: '',
+  level: 'L1',
+  pathway: 'ROBOTICS_ENGINEERING',
+  status: 'Confirmed',
+  yearLevel: '',
+  partners: '',
+  venue: '',
+  dates: '',
+  startDate: '',
+  endDate: '',
+  description: '',
+};
+
 export default function NewProgrammeForm() {
   const router = useRouter();
-  const [form, setForm] = useState({
-    name: '',
-    level: 'L1',
-    pathway: 'ROBOTICS_ENGINEERING',
-    status: 'Confirmed',
-    yearLevel: '',
-    partners: '',
-    venue: '',
-    dates: '',
-    description: '',
-  });
+  const [form, setForm] = useState(INITIAL_FORM);
+  // `tbd` controls whether startDate / endDate are cleared and
+  // disabled. Initial state matches the (null, null) default.
+  const [tbd, setTbd] = useState(INITIAL_TBD);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
 
   function set(k, v) { setForm(prev => ({ ...prev, [k]: v })); }
 
+  function onTbdChange(next) {
+    setTbd(next);
+    if (next) {
+      // Clearing the dates keeps the underlying state in sync
+      // with "no scheduled date yet".
+      setForm(prev => ({ ...prev, startDate: '', endDate: '' }));
+    }
+  }
+
   async function submit(e) {
     e.preventDefault();
     setBusy(true);
     setErr('');
+    // TBD overrides the form fields — when checked, both dates
+    // are sent as null. When unchecked, the user-entered values
+    // are passed through.
+    const payload = {
+      ...form,
+      startDate: tbd ? null : (form.startDate || null),
+      endDate: tbd ? null : (form.endDate || null),
+    };
     try {
       const res = await fetch(withBase('/api/admin/programmes'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -98,9 +127,50 @@ export default function NewProgrammeForm() {
         <Field label="Venue">
           <input value={form.venue} onChange={e => set('venue', e.target.value)} className="input" />
         </Field>
-        <Field label="Dates">
-          <input value={form.dates} onChange={e => set('dates', e.target.value)} className="input" placeholder="e.g. 11–14 Sep 2027" />
+        <Field label="Dates (free-text, optional)">
+          <input value={form.dates} onChange={e => set('dates', e.target.value)} className="input" placeholder="e.g. Term 1 2027" />
         </Field>
+      </div>
+
+      {/* Structured event dates. TBD is the default; the two
+          <input type="date"> fields are disabled when TBD is
+          checked, and the server stores (null, null). */}
+      <div className="rounded border border-gray-200 bg-gray-50 p-3 space-y-2">
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={tbd}
+            onChange={e => onTbdChange(e.target.checked)}
+            className="rounded border-gray-300"
+          />
+          <span className="font-semibold text-gray-800">TBD — no dates yet</span>
+          <span className="text-xs text-gray-500">
+            (programme exists but no scheduled date)
+          </span>
+        </label>
+        <div className={`grid grid-cols-2 gap-3 ${tbd ? 'opacity-50 pointer-events-none' : ''}`}>
+          <Field label="Start date">
+            <input
+              type="date"
+              value={form.startDate}
+              onChange={e => set('startDate', e.target.value)}
+              disabled={tbd}
+              className="input"
+            />
+          </Field>
+          <Field label="End date">
+            <input
+              type="date"
+              value={form.endDate}
+              onChange={e => set('endDate', e.target.value)}
+              disabled={tbd}
+              className="input"
+            />
+          </Field>
+        </div>
+        {!tbd && form.startDate && form.endDate && form.endDate < form.startDate && (
+          <p className="text-xs text-red-600">End date must be on or after the start date.</p>
+        )}
       </div>
 
       <Field label="Description">
@@ -125,6 +195,7 @@ export default function NewProgrammeForm() {
           font-size: 0.875rem;
         }
         .input:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.15); }
+        .input:disabled { background-color: #f3f4f6; cursor: not-allowed; }
       `}</style>
     </form>
   );

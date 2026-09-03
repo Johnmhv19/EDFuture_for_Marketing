@@ -4,40 +4,74 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { LEVEL_LABEL, LEVEL_SHORT, LEVEL_ORDER, PATHWAY_LABEL, PATHWAY_COLOR } from '@/lib/labels';
 import { withBase } from '@/lib/basePath';
+import { toDateInputValue } from '@/lib/validate';
 
 const LEVELS = LEVEL_ORDER;
 const PATHWAYS = Object.keys(PATHWAY_LABEL);
 const STATUSES = ['Confirmed', 'Planned', 'TBD', 'In development'];
 
+// Initial state derived from the row. TBD when both fields are
+// null; otherwise the dates are pre-populated as YYYY-MM-DD.
+function buildInitialState(programme) {
+  const isTbd = !programme.startDate && !programme.endDate;
+  return {
+    form: {
+      name: programme.name,
+      level: programme.level,
+      pathway: programme.pathway,
+      status: programme.status,
+      yearLevel: programme.yearLevel || '',
+      partners: programme.partners || '',
+      venue: programme.venue || '',
+      dates: programme.dates || '',
+      startDate: toDateInputValue(programme.startDate),
+      endDate: toDateInputValue(programme.endDate),
+      description: programme.description || '',
+    },
+    tbd: isTbd,
+  };
+}
+
 export default function EditProgrammeForm({ programme }) {
   const router = useRouter();
-  const [form, setForm] = useState({
-    name: programme.name,
-    level: programme.level,
-    pathway: programme.pathway,
-    status: programme.status,
-    yearLevel: programme.yearLevel || '',
-    partners: programme.partners || '',
-    venue: programme.venue || '',
-    dates: programme.dates || '',
-    description: programme.description || '',
-  });
+  const [{ form, tbd: initialTbd }, setState] = useState(() => buildInitialState(programme));
+  // tbd lives outside `form` so it isn't accidentally POSTed.
+  const [tbd, setTbd] = useState(initialTbd);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
   const [ok, setOk] = useState(false);
 
-  function set(k, v) { setForm(prev => ({ ...prev, [k]: v })); }
+  function set(k, v) {
+    setState(prev => ({ form: { ...prev.form, [k]: v }, tbd: prev.tbd }));
+  }
+
+  function onTbdChange(next) {
+    setTbd(next);
+    if (next) {
+      setState(prev => ({
+        form: { ...prev.form, startDate: '', endDate: '' },
+        tbd: next,
+      }));
+    } else {
+      setState(prev => ({ ...prev, tbd: next }));
+    }
+  }
 
   async function save(e) {
     e.preventDefault();
     setBusy(true);
     setErr('');
     setOk(false);
+    const payload = {
+      ...form,
+      startDate: tbd ? null : (form.startDate || null),
+      endDate: tbd ? null : (form.endDate || null),
+    };
     try {
       const res = await fetch(withBase(`/api/admin/programmes/${programme.id}`), {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -112,9 +146,47 @@ export default function EditProgrammeForm({ programme }) {
         <Field label="Venue">
           <input value={form.venue} onChange={e => set('venue', e.target.value)} className="input" />
         </Field>
-        <Field label="Dates">
+        <Field label="Dates (free-text, optional)">
           <input value={form.dates} onChange={e => set('dates', e.target.value)} className="input" />
         </Field>
+      </div>
+
+      <div className="rounded border border-gray-200 bg-gray-50 p-3 space-y-2">
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={tbd}
+            onChange={e => onTbdChange(e.target.checked)}
+            className="rounded border-gray-300"
+          />
+          <span className="font-semibold text-gray-800">TBD — no dates yet</span>
+          <span className="text-xs text-gray-500">
+            (programme exists but no scheduled date)
+          </span>
+        </label>
+        <div className={`grid grid-cols-2 gap-3 ${tbd ? 'opacity-50 pointer-events-none' : ''}`}>
+          <Field label="Start date">
+            <input
+              type="date"
+              value={form.startDate}
+              onChange={e => set('startDate', e.target.value)}
+              disabled={tbd}
+              className="input"
+            />
+          </Field>
+          <Field label="End date">
+            <input
+              type="date"
+              value={form.endDate}
+              onChange={e => set('endDate', e.target.value)}
+              disabled={tbd}
+              className="input"
+            />
+          </Field>
+        </div>
+        {!tbd && form.startDate && form.endDate && form.endDate < form.startDate && (
+          <p className="text-xs text-red-600">End date must be on or after the start date.</p>
+        )}
       </div>
 
       <Field label="Description">
@@ -125,7 +197,7 @@ export default function EditProgrammeForm({ programme }) {
         <button type="button" onClick={destroy} disabled={busy} className="btn btn-danger">Delete programme</button>
         <button type="submit" disabled={busy} className="btn btn-primary">{busy ? 'Saving…' : 'Save changes'}</button>
       </div>
-      <style>{`.input { width: 100%; padding: 0.5rem 0.75rem; border: 1px solid #d1d5db; border-radius: 0.375rem; font-size: 0.875rem; }`}</style>
+      <style>{`.input { width: 100%; padding: 0.5rem 0.75rem; border: 1px solid #d1d5db; border-radius: 0.375rem; font-size: 0.875rem; } .input:disabled { background-color: #f3f4f6; cursor: not-allowed; }`}</style>
     </form>
   );
 }

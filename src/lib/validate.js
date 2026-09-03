@@ -35,6 +35,62 @@ export class ValidationError extends Error {
   }
 }
 
+// Date helpers for the structured startDate / endDate fields on
+// Programme (see AUDIT-REPORT.md and the dates feature shipped
+// 2026-09-03). TBD is represented as `null` for both fields. If
+// only one is set, that's allowed (programme has one of start or
+// end but not the other). If both are set, endDate must be >=
+// startDate — enforced by `validateDateRange` below.
+
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+// Parse a YYYY-MM-DD string (as produced by <input type="date">)
+// into a Date object at UTC midnight. Returns null if the value
+// is null/empty, or throws a ValidationError if the value is
+// present but not a valid date.
+export function dateOrNull(value) {
+  if (value === undefined || value === null) return null;
+  if (typeof value !== 'string') {
+    throw new ValidationError('must be a string in YYYY-MM-DD format');
+  }
+  const trimmed = value.trim();
+  if (trimmed === '') return null;
+  if (!ISO_DATE.test(trimmed)) {
+    throw new ValidationError('must be a YYYY-MM-DD date string');
+  }
+  // Construct as UTC midnight so the value doesn't drift across
+  // server timezones. We use the Date constructor's strict ISO
+  // path (YYYY-MM-DD is treated as UTC by the spec).
+  const d = new Date(trimmed + 'T00:00:00.000Z');
+  if (Number.isNaN(d.getTime())) {
+    throw new ValidationError('is not a valid date');
+  }
+  // Defensive: round-trip check (e.g. 2026-02-31 normalises).
+  if (d.toISOString().slice(0, 10) !== trimmed) {
+    throw new ValidationError('is not a valid calendar date');
+  }
+  return d;
+}
+
+// Validate that, if both startDate and endDate are set,
+// endDate >= startDate. Either may be null. Throws
+// ValidationError if the range is inverted.
+export function validateDateRange(startDate, endDate) {
+  if (startDate && endDate && endDate.getTime() < startDate.getTime()) {
+    throw new ValidationError('endDate must be on or after startDate');
+  }
+}
+
+// Format a Date as a YYYY-MM-DD string, suitable for an
+// <input type="date"> default value. Returns '' for null.
+export function toDateInputValue(d) {
+  if (!d) return '';
+  if (typeof d === 'string') return d.slice(0, 10);
+  // Use UTC so the date displayed in the input is the date the
+  // server stored (avoids TZ drift when reading back at midnight).
+  return d.toISOString().slice(0, 10);
+}
+
 // MIME-type allowlist for uploaded files. Anything outside this
 // list is rejected before the bytes are written to disk. See
 // AUDIT-REPORT.md H-1.

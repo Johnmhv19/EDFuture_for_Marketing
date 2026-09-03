@@ -12,7 +12,7 @@ import { LEVEL_ORDER, PATHWAY_LABEL } from '@/lib/labels';
 import path from 'node:path';
 import fs from 'node:fs';
 import { config } from '@/lib/config';
-import { stringOrNull, ValidationError } from '@/lib/validate';
+import { stringOrNull, dateOrNull, validateDateRange, ValidationError } from '@/lib/validate';
 
 const VALID_LEVELS = LEVEL_ORDER;
 const VALID_PATHWAYS = Object.keys(PATHWAY_LABEL);
@@ -71,6 +71,43 @@ export async function PATCH(req, ctx) {
         return bad(`status must be one of ${VALID_STATUSES.join(', ')}`);
       }
       data.status = body.status;
+    }
+    // Structured event dates. The client may send `startDate` and
+    // `endDate` as either null (clear) or a YYYY-MM-DD string. If
+    // both are sent, endDate >= startDate is enforced.
+    let startDate, endDate;
+    let startDateProvided = false, endDateProvided = false;
+    try {
+      if ('startDate' in body) {
+        startDate = dateOrNull(body.startDate);
+        startDateProvided = true;
+      }
+      if ('endDate' in body) {
+        endDate = dateOrNull(body.endDate);
+        endDateProvided = true;
+      }
+    } catch (e) {
+      if (e instanceof ValidationError) return bad(e.message);
+      throw e;
+    }
+    // To validate the range correctly we need the final values
+    // (after merging with the existing row). Re-fetch the row if
+    // we got a partial update so we can do a correct cross-field
+    // check. Cheap: indexed primary-key lookup.
+    if (startDateProvided || endDateProvided) {
+      let existing;
+      try { existing = await prisma.programme.findUnique({ where: { id }, select: { startDate: true, endDate: true } }); }
+      catch (e) { throw e; }
+      if (!existing) return bad('Programme not found', 404);
+      const finalStart = startDateProvided ? startDate : existing.startDate;
+      const finalEnd = endDateProvided ? endDate : existing.endDate;
+      try { validateDateRange(finalStart, finalEnd); }
+      catch (e) {
+        if (e instanceof ValidationError) return bad(e.message);
+        throw e;
+      }
+      if (startDateProvided) data.startDate = startDate;
+      if (endDateProvided) data.endDate = endDate;
     }
 
     let p;

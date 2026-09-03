@@ -42,7 +42,17 @@ model Programme {
   yearLevel    String?
   partners     String?
   venue        String?
+  // Free-text dates (e.g. "Term 1 2027", "Sep–Jul"). Preserved for
+  // legacy display. The structured startDate / endDate below are the
+  // source of truth for "Coming up" / "Recent past" home-page
+  // sections. Either may be null (programme has no scheduled date
+  // yet — "TBD"). See AUDIT-REPORT.md / new feature work 2026-09-03.
   dates        String?
+  // Structured event dates. Either both null (TBD) or at least
+  // startDate set. If both are set, endDate >= startDate is enforced
+  // at the app layer.
+  startDate    DateTime?
+  endDate      DateTime?
   status       String   @default("Confirmed")
   description  String?
   // Ordering
@@ -56,6 +66,8 @@ model Programme {
   @@index([level])
   @@index([pathway])
   @@index([status])
+  @@index([startDate])
+  @@index([endDate])
 }
 
 model ProgrammeFile {

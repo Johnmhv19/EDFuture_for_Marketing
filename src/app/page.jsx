@@ -9,6 +9,7 @@ import { ensureDataDirs } from '@/lib/config';
 import { isAdmin } from '@/lib/auth';
 import { LEVEL_ORDER } from '@/lib/labels';
 import ProgrammesBrowser from './ProgrammesBrowser';
+import HomeDateSections from './HomeDateSections';
 
 // Run on every request so that fresh deploys with empty data dirs
 // don't crash. Idempotent and cheap.
@@ -170,6 +171,10 @@ export default async function HomePage() {
           }}
         />
       </section>
+
+      {/* ───── "Coming up" + "Recent past" — thin-bordered cards, above
+          the search/toggle area and the level/pathway grid. ───── */}
+      <HomeDateSections programmes={programmes} />
 
       {/* ───── Client-side: search + level cards + programme list ───── */}
       <ProgrammesBrowser

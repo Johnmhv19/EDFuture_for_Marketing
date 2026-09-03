@@ -13,7 +13,7 @@ user_path: ~/EDFuture_for_Marketing/
 > The YAML frontmatter above is the canonical identifier — always check
 > `project:` matches before treating this file as context.
 
-_Last updated: 2026-09-03 (afternoon)
+_Last updated: 2026-09-03 (evening)
 
 ---
 
@@ -202,3 +202,15 @@ _Last updated: 2026-09-03 (afternoon)
 - **PM**: Labels updated — `UPLOADED_BY_LABEL`, `UPLOADED_BY_BADGE`, `UPLOADED_BY_ORDER`, `PATHWAY_ORDER` (new canonical pathway order)
 - **PM**: Audit regression check all green: C-1 forged cookie → 307 / 401, H-1 HTML upload → MIME rejected, H-2 numeric name → 400 not 500, M-1 open-redirect still blocked by LoginForm, M-2 private file → viewer 404 / admin 200, M-3/M-4 all security headers present, M-6 BASE_PATH validation intact
 - **PM**: Build clean, two new routes (`/api/programmes/[id]/files`, `/api/programmes/[id]/files/[fileId]`). Status: ready to push
+
+### 2026-09-03 (evening) — structured event dates
+- **PM**: User asked for structured event dates on `Programme` plus two new home page sections ("Coming up" + "Recent past") so marketing can show what's next and what just happened. No regressions to the 9 audit fixes; no new dependencies; no redesign of existing components
+- **PM**: Schema change — added two nullable columns to `Programme`: `startDate DateTime?` and `endDate DateTime?` (with `@@index([startDate])` + `@@index([endDate])` for the home-page queries). New migration `20260903050147_add_programme_dates`. Existing seeded rows are left as `(null, null)` ("TBD" — free-text `dates` field preserved)
+- **PM**: Validation helpers added to `src/lib/validate.js`: `dateOrNull` (parses YYYY-MM-DD with strict calendar-date round-trip — rejects 2026-02-31), `validateDateRange` (enforces `endDate >= startDate` when both set), `toDateInputValue` (Date → "YYYY-MM-DD" for `<input type="date">`)
+- **PM**: `POST /api/admin/programmes` and `PATCH /api/admin/programmes/[id]` accept `startDate` / `endDate`. PATCH merges with existing values before validating the range, so a partial update (e.g. only `endDate` sent) is checked against the still-existing `startDate`. Existing H-2 try/catch + `P2002` translation preserved
+- **PM**: TBD semantics — a programme is TBD when both fields are null. New programme form default: TBD checked, both date pickers disabled. Edit form derives TBD from the existing row. Both forms send `{startDate: null, endDate: null}` to the server when the TBD checkbox is on, regardless of stale state in the date inputs
+- **PM**: New home-page section component `src/app/HomeDateSections.jsx` — server-rendered, two thin-bordered cards above the search/toggle area. "Coming up" filters: `startDate` not null, in current month or future, `endDate` not in past. "Recent past" filters: `endDate` not null, in current month or past, `startDate` not null. Both sort + take 3. TBD programmes do not appear in either section
+- **PM**: Each row: programme name, level badge (level color), pathway label, pathway color as left border, link to programme detail, "starts DD MMM" / "ended DD MMM" label. Empty section shows muted placeholder text — the section itself is never hidden
+- **PM**: Date format helpers added to `src/lib/labels.js`: `formatDateRange` (returns "Sep 5 – Sep 9, 2027" or full years on both sides when different), `formatShortDate`, `formatRelativeStartLabel` / `formatRelativeEndLabel`, `isInCurrentMonthOrFuture` / `isInCurrentMonthOrPast` / `isInPast`. All UTC-based for cross-runtime consistency
+- **PM**: Public programme detail sidebar — "Dates" row replaced by "Date" row using the structured field. Renders "TBD" when both null, "Mon DD – Mon DD, YYYY" when both set, or a single short date when only one is set. Free-text `dates` field kept on the DB row but no longer rendered in the sidebar (the structured date is the source of truth going forward)
+- **PM**: All 9 audit fixes still in place — re-ran the full repro set: C-1 forged cookie → 307, H-1 HTML upload → MIME rejected, H-2 numeric name → 400 (not 500), M-2 viewer can't fetch COVER_IMAGE, M-3 nosniff on all responses, M-4 full security-header suite, M-6 BASE_PATH regex enforced. Build clean (10 routes, no warnings)
