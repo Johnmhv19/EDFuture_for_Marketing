@@ -427,8 +427,11 @@ function LevelSection({ level, programmes }) {
   );
 }
 
-// Chalkboard-styled pathway quick-jump card. The pathway colour
-// shows up in the label dot, mirroring the LevelCard design.
+// Pathway quick-jump card. The pathway colour is the dominant
+// visual: it fills the entire header band so each card is
+// immediately identifiable. White text on a saturated mid-tone
+// stays readable across the full palette (red / blue / orange /
+// purple / green / cyan / gray).
 function PathwayQuickCard({ pathway, programmes }) {
   const count = programmes.length;
   const color = PATHWAY_COLOR[pathway] || '#6b7280';
@@ -445,34 +448,22 @@ function PathwayQuickCard({ pathway, programmes }) {
     >
       <div
         className="relative h-24 flex items-center justify-center"
-        style={{
-          backgroundColor: '#000000',
-          backgroundImage:
-            'radial-gradient(circle at 20% 30%, rgba(255,255,255,0.04) 0, transparent 40%),' +
-            'radial-gradient(circle at 70% 60%, rgba(255,255,255,0.03) 0, transparent 40%),' +
-            'radial-gradient(circle at 40% 80%, rgba(255,255,255,0.05) 0, transparent 30%)',
-        }}
+        style={{ backgroundColor: color }}
       >
-        <div className="absolute top-2 left-3 text-white/5 text-[10px] pointer-events-none" style={{ fontFamily: "var(--font-caveat), cursive" }}>~</div>
-        <div className="absolute bottom-3 right-4 text-white/5 text-[12px] pointer-events-none" style={{ fontFamily: "var(--font-caveat), cursive" }}>~</div>
+        <div className="absolute top-2 left-3 text-white/15 text-[10px] pointer-events-none" style={{ fontFamily: "var(--font-caveat), cursive" }}>~</div>
+        <div className="absolute bottom-3 right-4 text-white/15 text-[12px] pointer-events-none" style={{ fontFamily: "var(--font-caveat), cursive" }}>~</div>
         <span
-          className="text-white text-2xl"
+          className="text-white text-2xl px-3 text-center"
           style={{
             fontFamily: "var(--font-caveat), 'Bradley Hand', 'Brush Script MT', cursive",
             fontWeight: '500',
             textShadow:
-              '0 0 1px rgba(255,255,255,0.4),' +
-              '0 0 8px rgba(255,255,255,0.18),' +
-              '0 1px 0 rgba(0,0,0,0.5)',
+              '0 1px 0 rgba(0,0,0,0.35)',
             letterSpacing: '0.02em',
           }}
         >
           {PATHWAY_LABEL[pathway] || pathway}
         </span>
-        <div
-          className="absolute bottom-0 left-0 right-0 h-1.5"
-          style={{ backgroundColor: color }}
-        />
       </div>
       <div className="p-3 flex-1 flex flex-col">
         <div className="text-xs text-gray-500 mb-1 flex items-center gap-1.5">
