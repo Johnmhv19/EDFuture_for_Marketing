@@ -30,7 +30,7 @@ import Link from 'next/link';
 import {
   LEVEL_SHORT, LEVEL_COLOR,
   PATHWAY_LABEL, PATHWAY_COLOR,
-  isInCurrentMonthOrFuture, isInCurrentMonthOrPast, isInPast,
+  isInCurrentMonthOrFuture, isInPast,
   formatRelativeStartLabel, formatRelativeEndLabel, formatDateRange,
 } from '@/lib/labels';
 
@@ -49,10 +49,15 @@ function pickComingUp(programmes, now) {
 }
 
 function pickRecentPast(programmes, now) {
+  // A programme is "recent past" only when its endDate has already
+  // passed. Using isInCurrentMonthOrPast here was wrong — it treats
+  // the whole current month as "past" even for future dates in the
+  // same month, so a programme ending Sept 15 (today Sept 3) was
+  // incorrectly listed as recent past.
   return programmes
     .filter(p => p.endDate)
     .filter(p => p.startDate)
-    .filter(p => isInCurrentMonthOrPast(p.endDate, now))
+    .filter(p => isInPast(p.endDate, now))
     .sort((a, b) => new Date(b.endDate) - new Date(a.endDate))
     .slice(0, TAKE);
 }
