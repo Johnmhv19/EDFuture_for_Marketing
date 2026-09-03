@@ -343,11 +343,7 @@ function LevelCard({ level, programmes }) {
       {/* Whiteboard surface */}
       <div
         className="relative h-24 flex items-center justify-center"
-        style={{
-          backgroundColor: '#fafaf9',
-          backgroundImage:
-            'repeating-linear-gradient(0deg, transparent 0, transparent 22px, rgba(0,0,0,0.05) 22px, rgba(0,0,0,0.05) 23px)',
-        }}
+        style={{ backgroundColor: '#fafaf9' }}
       >
         <div className="absolute top-2 left-3 text-gray-300 text-[10px] pointer-events-none" style={{ fontFamily: "var(--font-caveat), cursive" }}>~</div>
         <div className="absolute bottom-3 right-4 text-gray-300 text-[12px] pointer-events-none" style={{ fontFamily: "var(--font-caveat), cursive" }}>~</div>

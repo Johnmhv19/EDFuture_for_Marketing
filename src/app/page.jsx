@@ -72,13 +72,7 @@ export default async function HomePage() {
       {/* ───── Hero (whiteboard) ───── */}
       <section
         className="relative"
-        style={{
-          backgroundColor: '#fafaf9',
-          backgroundImage:
-            // Faint horizontal lines, like ruled paper or whiteboard
-            // tick marks. The 'whiteboard' feel.
-            'repeating-linear-gradient(0deg, transparent 0, transparent 31px, rgba(0,0,0,0.04) 31px, rgba(0,0,0,0.04) 32px)',
-        }}
+        style={{ backgroundColor: '#fafaf9' }}
       >
         <div className="absolute top-4 left-8 text-gray-300 text-sm pointer-events-none" style={{ fontFamily: "var(--font-caveat), cursive" }}>~</div>
         <div className="absolute bottom-6 right-10 text-gray-300 text-lg pointer-events-none" style={{ fontFamily: "var(--font-caveat), cursive" }}>~</div>
