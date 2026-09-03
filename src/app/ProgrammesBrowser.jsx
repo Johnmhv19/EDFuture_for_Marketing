@@ -340,28 +340,23 @@ function LevelCard({ level, programmes }) {
       value={level}
       className={`card flex flex-col group overflow-hidden ${count === 0 ? 'opacity-50 pointer-events-none' : ''}`}
     >
-      {/* Blackboard surface */}
+      {/* Whiteboard surface */}
       <div
         className="relative h-24 flex items-center justify-center"
         style={{
-          backgroundColor: '#000000',
+          backgroundColor: '#fafaf9',
           backgroundImage:
-            'radial-gradient(circle at 20% 30%, rgba(255,255,255,0.04) 0, transparent 40%),' +
-            'radial-gradient(circle at 70% 60%, rgba(255,255,255,0.03) 0, transparent 40%),' +
-            'radial-gradient(circle at 40% 80%, rgba(255,255,255,0.05) 0, transparent 30%)',
+            'repeating-linear-gradient(0deg, transparent 0, transparent 22px, rgba(0,0,0,0.05) 22px, rgba(0,0,0,0.05) 23px)',
         }}
       >
-        <div className="absolute top-2 left-3 text-white/5 text-[10px] pointer-events-none" style={{ fontFamily: "var(--font-caveat), cursive" }}>~</div>
-        <div className="absolute bottom-3 right-4 text-white/5 text-[12px] pointer-events-none" style={{ fontFamily: "var(--font-caveat), cursive" }}>~</div>
+        <div className="absolute top-2 left-3 text-gray-300 text-[10px] pointer-events-none" style={{ fontFamily: "var(--font-caveat), cursive" }}>~</div>
+        <div className="absolute bottom-3 right-4 text-gray-300 text-[12px] pointer-events-none" style={{ fontFamily: "var(--font-caveat), cursive" }}>~</div>
         <span
-          className="text-white text-4xl"
+          className="text-4xl"
           style={{
+            color: '#111827',
             fontFamily: "var(--font-caveat), 'Bradley Hand', 'Brush Script MT', cursive",
-            fontWeight: '500',
-            textShadow:
-              '0 0 1px rgba(255,255,255,0.4),' +
-              '0 0 8px rgba(255,255,255,0.18),' +
-              '0 1px 0 rgba(0,0,0,0.5)',
+            fontWeight: '700',
             letterSpacing: '0.02em',
           }}
         >
@@ -370,8 +365,8 @@ function LevelCard({ level, programmes }) {
         <div
           className="absolute bottom-0 left-0 right-0 h-1.5"
           style={{
-            background: 'linear-gradient(180deg, #92400e 0%, #78350f 50%, #451a03 100%)',
-            boxShadow: '0 1px 2px rgba(0,0,0,0.3)',
+            background: 'linear-gradient(180deg, #d4d4d8 0%, #a1a1aa 50%, #71717a 100%)',
+            boxShadow: '0 1px 2px rgba(0,0,0,0.15)',
           }}
         />
       </div>

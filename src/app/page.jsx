@@ -69,46 +69,42 @@ export default async function HomePage() {
         </div>
       )}
 
-      {/* ───── Hero (chalkboard, full black) ───── */}
+      {/* ───── Hero (whiteboard) ───── */}
       <section
         className="relative"
         style={{
-          backgroundColor: '#000000',
+          backgroundColor: '#fafaf9',
           backgroundImage:
-            'radial-gradient(circle at 20% 30%, rgba(255,255,255,0.04) 0, transparent 40%),' +
-            'radial-gradient(circle at 70% 60%, rgba(255,255,255,0.03) 0, transparent 40%),' +
-            'radial-gradient(circle at 40% 80%, rgba(255,255,255,0.05) 0, transparent 30%)',
+            // Faint horizontal lines, like ruled paper or whiteboard
+            // tick marks. The 'whiteboard' feel.
+            'repeating-linear-gradient(0deg, transparent 0, transparent 31px, rgba(0,0,0,0.04) 31px, rgba(0,0,0,0.04) 32px)',
         }}
       >
-        <div className="absolute top-4 left-8 text-white/5 text-sm pointer-events-none" style={{ fontFamily: "var(--font-caveat), cursive" }}>~</div>
-        <div className="absolute bottom-6 right-10 text-white/5 text-lg pointer-events-none" style={{ fontFamily: "var(--font-caveat), cursive" }}>~</div>
+        <div className="absolute top-4 left-8 text-gray-300 text-sm pointer-events-none" style={{ fontFamily: "var(--font-caveat), cursive" }}>~</div>
+        <div className="absolute bottom-6 right-10 text-gray-300 text-lg pointer-events-none" style={{ fontFamily: "var(--font-caveat), cursive" }}>~</div>
 
         <div className="max-w-5xl mx-auto px-6 py-8 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
           <div>
             <div
-              className="text-xs font-bold uppercase tracking-wider"
+              className="uppercase tracking-wider"
               style={{
-                color: 'rgba(255,255,255,0.6)',
+                color: '#6b7280',
                 fontFamily: "var(--font-caveat), cursive",
                 fontSize: '1.1rem',
                 fontWeight: '500',
                 letterSpacing: '0.05em',
-                textShadow: '0 0 1px rgba(255,255,255,0.3)',
               }}
             >
               YCYW Advanced Pathways Academy
             </div>
             <h1
-              className="mt-1 text-white"
+              className="mt-1"
               style={{
+                color: '#111827',
                 fontFamily: "var(--font-caveat), 'Bradley Hand', 'Brush Script MT', cursive",
                 fontWeight: '700',
                 fontSize: '3.25rem',
                 lineHeight: '1',
-                textShadow:
-                  '0 0 1px rgba(255,255,255,0.4),' +
-                  '0 0 8px rgba(255,255,255,0.18),' +
-                  '0 1px 0 rgba(0,0,0,0.5)',
                 letterSpacing: '0.01em',
               }}
             >
@@ -117,10 +113,9 @@ export default async function HomePage() {
             <div
               className="mt-1"
               style={{
-                color: 'rgba(255,255,255,0.7)',
+                color: '#4b5563',
                 fontFamily: "var(--font-caveat), cursive",
                 fontSize: '1.15rem',
-                textShadow: '0 0 1px rgba(255,255,255,0.2)',
               }}
             >
               Programmes for marketing
@@ -135,12 +130,11 @@ export default async function HomePage() {
             ].map((s, i) => (
               <div key={i} className="flex items-baseline gap-1.5">
                 <span
-                  className="text-white"
                   style={{
+                    color: '#111827',
                     fontFamily: "var(--font-caveat), cursive",
                     fontSize: '2rem',
                     fontWeight: '700',
-                    textShadow: '0 0 1px rgba(255,255,255,0.3), 0 0 6px rgba(255,255,255,0.15)',
                     lineHeight: '1',
                   }}
                 >
@@ -149,10 +143,9 @@ export default async function HomePage() {
                 <span
                   className="uppercase"
                   style={{
-                    color: 'rgba(255,255,255,0.65)',
+                    color: '#6b7280',
                     fontFamily: "var(--font-caveat), cursive",
                     fontSize: '0.95rem',
-                    textShadow: '0 0 1px rgba(255,255,255,0.2)',
                   }}
                 >
                   {s.l}
@@ -162,12 +155,12 @@ export default async function HomePage() {
           </div>
         </div>
 
-        {/* Wood frame along the bottom edge of the slate */}
+        {/* Aluminum frame along the bottom edge of the whiteboard */}
         <div
           className="h-1.5"
           style={{
-            background: 'linear-gradient(180deg, #92400e 0%, #78350f 50%, #451a03 100%)',
-            boxShadow: '0 1px 2px rgba(0,0,0,0.3)',
+            background: 'linear-gradient(180deg, #d4d4d8 0%, #a1a1aa 50%, #71717a 100%)',
+            boxShadow: '0 1px 2px rgba(0,0,0,0.15)',
           }}
         />
       </section>
