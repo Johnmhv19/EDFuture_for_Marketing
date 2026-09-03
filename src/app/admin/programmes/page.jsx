@@ -4,7 +4,7 @@
 
 import Link from 'next/link';
 import { prisma } from '@/lib/db';
-import { LEVEL_LABEL, LEVEL_SHORT, LEVEL_COLOR, LEVEL_ORDER, PATHWAY_LABEL, PATHWAY_COLOR, STATUS_COLOR } from '@/lib/labels';
+import { LEVEL_LABEL, LEVEL_SHORT, LEVEL_COLOR, LEVEL_ORDER, PATHWAY_LABEL, PATHWAY_COLOR, STATUS_COLOR, formatProgrammeDate } from '@/lib/labels';
 import DeleteButton from './DeleteButton';
 
 export const dynamic = 'force-dynamic';
@@ -94,7 +94,7 @@ export default async function AdminProgrammes({ searchParams }) {
                   <Link href={`/admin/programmes/${p.id}`} className="font-medium text-blue-700 hover:underline">
                     {p.name}
                   </Link>
-                  {p.dates && <div className="text-xs text-gray-500">📅 {p.dates}</div>}
+                  <div className="text-xs text-gray-500">📅 {formatProgrammeDate(p)}</div>
                 </td>
                 <td className="px-4 py-3">
                   <span className="badge" style={{ backgroundColor: LEVEL_COLOR[p.level], color: '#fff' }}>

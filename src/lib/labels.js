@@ -236,6 +236,23 @@ export function isInCurrentMonthOrFuture(d, now) {
   return dayStart >= monthStart;
 }
 
+// Format a programme's structured dates (startDate + endDate) for
+// display in cards, list rows, and sidebars. Returns "TBD" when
+// both fields are null (the default for programmes that haven't
+// been scheduled yet). Otherwise delegates to formatDateRange for
+// the actual rendering.
+//
+// The free-text `dates` column on the Programme model is no longer
+// surfaced in the UI — every visible "Date" label now comes from
+// this helper. The column itself is kept in the schema for now to
+// avoid a destructive migration; admin forms no longer write to it.
+export function formatProgrammeDate(programme) {
+  if (!programme) return '';
+  const { startDate, endDate } = programme;
+  if (!startDate && !endDate) return 'TBD';
+  return formatDateRange(startDate, endDate);
+}
+
 // True if the date is in the current month or any month in the
 // past (relative to `now`). Strictly before next month, inclusive
 // of the current month.

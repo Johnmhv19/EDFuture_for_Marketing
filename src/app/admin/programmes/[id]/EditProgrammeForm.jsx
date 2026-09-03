@@ -23,7 +23,6 @@ function buildInitialState(programme) {
       yearLevel: programme.yearLevel || '',
       partners: programme.partners || '',
       venue: programme.venue || '',
-      dates: programme.dates || '',
       startDate: toDateInputValue(programme.startDate),
       endDate: toDateInputValue(programme.endDate),
       description: programme.description || '',
@@ -146,9 +145,9 @@ export default function EditProgrammeForm({ programme }) {
         <Field label="Venue">
           <input value={form.venue} onChange={e => set('venue', e.target.value)} className="input" />
         </Field>
-        <Field label="Dates (free-text, optional)">
-          <input value={form.dates} onChange={e => set('dates', e.target.value)} className="input" />
-        </Field>
+        {/* The free-text "dates" field was removed in favour of the
+            structured startDate/endDate picker below. The legacy
+            column is still in the schema but is no longer exposed. */}
       </div>
 
       <div className="rounded border border-gray-200 bg-gray-50 p-3 space-y-2">

@@ -22,7 +22,6 @@ const INITIAL_FORM = {
   yearLevel: '',
   partners: '',
   venue: '',
-  dates: '',
   startDate: '',
   endDate: '',
   description: '',
@@ -127,9 +126,9 @@ export default function NewProgrammeForm() {
         <Field label="Venue">
           <input value={form.venue} onChange={e => set('venue', e.target.value)} className="input" />
         </Field>
-        <Field label="Dates (free-text, optional)">
-          <input value={form.dates} onChange={e => set('dates', e.target.value)} className="input" placeholder="e.g. Term 1 2027" />
-        </Field>
+        {/* The free-text "dates" field was removed in favour of the
+            structured startDate/endDate picker below. The legacy
+            column is still in the schema but is no longer exposed. */}
       </div>
 
       {/* Structured event dates. TBD is the default; the two

@@ -20,6 +20,7 @@ import Link from 'next/link';
 import {
   LEVEL_LABEL, LEVEL_SHORT, LEVEL_COLOR, LEVEL_ORDER,
   PATHWAY_LABEL, PATHWAY_COLOR, PATHWAY_ORDER, STATUS_COLOR,
+  formatProgrammeDate,
 } from '@/lib/labels';
 
 const VIEW_STORAGE_KEY = 'pp.view';
@@ -562,9 +563,7 @@ function ProgrammeCard({ programme }) {
           </span>
         </div>
         <h4 className="font-semibold text-gray-900 group-hover:text-blue-700">{programme.name}</h4>
-        {programme.dates && (
-          <p className="mt-1 text-xs text-gray-500">📅 {programme.dates}</p>
-        )}
+        <p className="mt-1 text-xs text-gray-500">📅 {formatProgrammeDate(programme)}</p>
         {programme.status && (
           <span className={`mt-2 inline-block self-start text-xs px-2 py-0.5 rounded ${STATUS_COLOR[programme.status] || 'bg-gray-100 text-gray-700'}`}>
             {programme.status}

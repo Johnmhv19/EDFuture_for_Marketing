@@ -25,7 +25,7 @@ import {
   FILE_CATEGORY_LABEL, FILE_CATEGORY_ICON, PUBLIC_FILE_CATEGORIES,
   STATUS_COLOR,
   UPLOADED_BY_LABEL, UPLOADED_BY_BADGE,
-  formatDateRange,
+  formatDateRange, formatProgrammeDate,
 } from '@/lib/labels';
 import { withBase } from '@/lib/basePath';
 import { getRole } from '@/lib/auth';
@@ -217,7 +217,7 @@ export default async function ProgrammePage({ params }) {
               {programme.yearLevel && <Fact label="Year Level" value={programme.yearLevel} />}
               {programme.partners && <Fact label="Partners" value={programme.partners} />}
               {programme.venue && <Fact label="Venue" value={programme.venue} />}
-              <Fact label="Date" value={formatProgrammeDateRange(programme)} />
+              <Fact label="Date" value={formatProgrammeDate(programme)} />
               <Fact label="Status" value={programme.status} />
             </div>
             {!isAuthenticated && (
@@ -256,15 +256,4 @@ function formatBytes(bytes) {
 
 function shortUrl(url) {
   try { return new URL(url).hostname.replace('www.', ''); } catch { return url; }
-}
-
-// Render the structured event dates for the sidebar "Date" row.
-// Returns "TBD" when both fields are null, a single short date
-// when only one is set, or a "Mon DD – Mon DD, YYYY" range when
-// both are set. The free-text `dates` field is no longer rendered
-// here — the structured field is the source of truth.
-function formatProgrammeDateRange(programme) {
-  const { startDate, endDate } = programme;
-  if (!startDate && !endDate) return 'TBD';
-  return formatDateRange(startDate, endDate);
 }
