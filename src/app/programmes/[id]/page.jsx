@@ -98,11 +98,6 @@ export default async function ProgrammePage({ params }) {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Main column */}
           <div className="md:col-span-2 space-y-6">
-            {/* Upload form (viewers + admins only) */}
-            {isAuthenticated && (
-              <ViewerFileUploader programmeId={programme.id} />
-            )}
-
             {cover && (isAdmin || cover.isPublic) && (
               <div className="card overflow-hidden">
                 <img src={withBase(`/api/files/${cover.id}`)} alt={cover.displayName} className="w-full h-auto" />
@@ -203,6 +198,15 @@ export default async function ProgrammePage({ params }) {
               <div className="card p-8 text-center text-gray-500">
                 No files uploaded yet.
               </div>
+            )}
+
+            {/* Upload form (viewers + admins only) — at the bottom of
+                the main column, after the existing files. "Add"
+                actions conventionally sit at the end of a content
+                list so they don't displace what the viewer came
+                to see. */}
+            {isAuthenticated && (
+              <ViewerFileUploader programmeId={programme.id} />
             )}
           </div>
 
