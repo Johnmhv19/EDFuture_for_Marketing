@@ -88,7 +88,13 @@ const nextConfig = {
         key: 'Content-Security-Policy',
         value: [
           "default-src 'self'",
-          "script-src 'self'",
+          // Dev-only: Next.js's hot-module-replacement runtime uses
+          // eval() to rebuild modules on the fly. Production builds
+          // do not — so 'unsafe-eval' is added to script-src only in
+          // development. See AUDIT-REPORT.md M-4.
+          isProd
+            ? "script-src 'self'"
+            : "script-src 'self' 'unsafe-eval'",
           "style-src 'self' 'unsafe-inline'",
           "img-src 'self' data:",
           "font-src 'self' data:",
