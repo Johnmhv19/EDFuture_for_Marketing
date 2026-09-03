@@ -379,6 +379,99 @@ site is missing its `withBase()` wrapper.
 If the asset URLs don't include `/Marketing/`, the build wasn't done
 with `BASE_PATH` set — re-run the build with the env vars in place.
 
+## Known framework vulnerabilities (`next@14.2.18+`)
+
+A `npm audit` on the current dependency tree (Next.js 14.2.x) reports
+**20 advisories in `next` and 4 in the bundled `postcss`** (all flagged
+"high" by npm, all in the `next 9.3.4-canary.0 – 16.3.0-preview.10`
+range). The only patched version npm offers is **`next@16.3.4`**, which
+is a breaking change. We have decided to **defer the upgrade** until
+after the initial presentation to allow the deployment to proceed.
+
+This section is the explicit acknowledgement of that decision, with the
+per-CVE reasoning. If your security review disagrees, the upgrade path
+is at the bottom.
+
+### CVEs that **apply** to this deployment
+
+| CVE / Advisory | What it is | Our exposure | Mitigation in place |
+|---|---|---|---|
+| **GHSA-ggv3-7p47-pfv8** — DoS via Server Components | An attacker can send a request that triggers expensive deserialization in RSC | Server is exposed via the marketing page and admin panel | Rate limiting missing (L-1 from audit); the attack is DoS-class (server slows/crashes), not data breach. Auth required for any RSC path that touches user data. **Risk: medium — outage-class, not data-class.** |
+| **GHSA-q4gf-8mx6-v5v3** / **GHSA-8h8q-6873-q5fj** — DoS with Server Components | Similar — RSC payload shapes that cause high CPU/memory | Same as above | Same as above. **Risk: medium.** |
+| **GHSA-3g8h-86w9-wvmq** — Middleware redirects cache-poisoned | A misconfigured intermediate cache can serve the wrong user's auth redirect | We use `NextResponse.redirect()` from middleware | All redirects go to the same `/login` path. The `next` query param is basePath-stripped server-side (we do not trust user-supplied `next`). An attacker who could poison a redirect would land a victim on `/login?next=...`, which the open-redirect fix (M-1) already validates. **Risk: low — already mitigated by the M-1 fix.** |
+| **GHSA-vfv6-92ff-j949** / **GHSA-wfc6-r584-vfw7** — Cache poisoning via RSC responses | A shared cache can return one user's RSC payload to another | We use RSC; the app is single-tenant behind Nginx (no shared cache by default) | Nginx config in this doc does not enable shared caching. **Risk: low unless IT adds a shared cache layer.** |
+| **GHSA-68g3-v927-f742** / **GHSA-4633-3j49-mh5q** — Cache confusion of response bodies | Similar cache confusion, including via invalid UTF-8 | We do `fetch('/api/auth/login', …)` in the LoginForm (same-origin, no cache directives) | Same — no shared cache in the documented Nginx config. **Risk: low.** |
+
+### CVEs that **do not apply**
+
+These advisories are listed for completeness. They affect features the
+app does not use.
+
+| Feature the CVE is about | Do we use it? |
+|---|---|
+| `next/image` (Image Optimizer, disk cache, remotePatterns) | **No** — we use plain `<img>` with `/api/files/...` |
+| Rewrites (HTTP smuggling, SSRF in rewrites) | **No** — no `rewrites()` in `next.config.mjs` |
+| i18n / locale routing (Middleware bypass) | **No** — no `i18n` config |
+| Server Actions (DoS, SSRF, unbounded payload) | **No** — we use API route handlers under `src/app/api/...` |
+| WebSocket upgrades (SSRF) | **No** |
+| CSP nonces (XSS) | **No** — we set a static CSP in `headers()` |
+| `beforeInteractive` scripts (XSS) | **No** — no `<Script strategy="beforeInteractive">` |
+| Server Functions (unauthenticated disclosure) | **No** |
+| PostCSS sourceMappingURL (file read, path traversal) | **No** — user-supplied data is never fed into PostCSS |
+
+### PostCSS transitive (`node_modules/next/node_modules/postcss`)
+
+The postcss advisories (XSS via unescaped `</style>`, file read via
+`sourceMappingURL`) apply to PostCSS when it processes **untrusted
+CSS input**. Our build pipeline processes only Tailwind's output
+and the static `globals.css` — no user input reaches PostCSS. **Risk:
+negligible.**
+
+### Why we are not upgrading immediately
+
+- The deployment is for an internal marketing tool behind a corporate
+  firewall, not a public SaaS.
+- The CVEs that *do* apply are DoS-class and cache-poisoning-class. DoS
+  is an availability issue (annoying, not catastrophic). Cache poisoning
+  requires a shared cache that we are not deploying.
+- The `next@16.3.4` upgrade touches: middleware internals, the
+  `next/font/local` loader, CSP defaults, and the React 19 runtime. The
+  migration would re-test all 9 security fixes from the audit and the
+  sub-path deployment. Estimated 2–3 hours of focused work.
+- We want the initial presentation to go ahead with the 9 application
+  fixes in place; framework upgrade is queued as a follow-up.
+
+### When to revisit
+
+- **After the initial presentation** — schedule the `next@16` upgrade
+  as a separate piece of work.
+- **If any of the "applies" CVEs are upgraded to "actively exploited in
+  the wild"** — escalate immediately.
+- **If the deployment gains a shared cache layer (e.g. CDN in front of
+  the app)** — re-evaluate the cache-poisoning advisories.
+
+### Upgrade path (when ready)
+
+```bash
+# In a worktree
+git worktree add ../pp-next16 -b chore/next-16-upgrade
+cd ../pp-next16
+npm install next@16.3.4
+# Read https://nextjs.org/docs/app/building-your-application/upgrading/version-16
+# Fix any build errors
+npm run build && npm run dev
+# Re-run the audit repros (see AUDIT-REPORT.md) — every fix must still hold.
+# Re-test sub-path deployment (BASE_PATH=/Marketing)
+# Commit, push, merge, deploy
+```
+
+The 9 security fixes from `AUDIT-REPORT.md` were implemented with
+minimal Next.js API surface (`NextResponse`, `NextRequest`, `cookies()`,
+`crypto.subtle` for the Edge runtime, plain `crypto` for Node). They
+should survive the upgrade unchanged, but must be re-tested.
+
+---
+
 ## Future (not implemented yet)
 
 - Docker image + compose for one-command deploy
