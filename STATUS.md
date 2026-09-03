@@ -13,11 +13,11 @@ user_path: ~/EDFuture_for_Marketing/
 > The YAML frontmatter above is the canonical identifier — always check
 > `project:` matches before treating this file as context.
 
-_Last updated: 2026-09-03 (morning)
+_Last updated: 2026-09-03 (afternoon)
 
 ---
 
-**Status: handoff to IT imminent.** All requested features built and tested. User confirmed external link/folder support works on their Mac. IT has confirmed SQLite is acceptable. IT collaborator invitation sent, pending their accept. **New today: sub-path deployment support** (for serving at `https://edfutures.ycyw.com/Marketing/`). Tested both modes locally. Next step: hand `DEPLOY.md` to IT once collaborator accepts.
+**Status: handoff to IT imminent.** All requested features built and tested. User confirmed external link/folder support works on their Mac. IT has confirmed SQLite is acceptable. IT collaborator invitation sent, pending their accept. **New today: sub-path deployment support** (for serving at `https://edfutures.ycyw.com/Marketing/`). Tested both modes locally. Next step: hand `DEPLOY.md` to IT once collaborator accepts. **PM: three viewer-facing features shipped — home page view toggle (default = pathway), viewer upload on public programme page, role-aware file delete (viewer can only delete their own uploads). All 9 audit fixes preserved.**
 
 ## At a glance
 
@@ -190,3 +190,15 @@ _Last updated: 2026-09-03 (morning)
 - **AM**: Made CSP environment-aware: in dev, `script-src 'self' 'unsafe-eval' 'unsafe-inline'`; in production, `script-src 'self'` (unchanged from the M-4 audit fix). Committed as `4d91042`, pushed
 - **AM**: User pulled, restarted dev server, login works. ✅ **Status**: production-ready, with one known deferral (next@16 upgrade)
 - **Open**: favicon 404 (L-5 from audit) — user said "forget about it"
+
+### 2026-09-03 (afternoon) — three viewer-facing features
+- **PM**: User asked for three changes that turn the platform from "admin-curated, viewers passively browse" into "viewers can contribute":
+  1. **Home page view toggle** — `By Level | By Pathway` tabs in the search bar. Default = `By Pathway`. Choice persisted in `localStorage` as `pp.view`. SSR-safe (server renders the default; client hydrates and reads localStorage in an effect). New `PathwayView` component with pathway quick-jump cards + pathway-coloured programme sections (anchor IDs `pathway-ROBOTICS_ENGINEERING` etc.). `PathwaySection` reuses `ProgrammeCard`. Whole-School section goes at the end of pathway order
+  2. **Viewer upload** — new `POST /api/programmes/[id]/files` (no `/admin/` prefix). Authenticated viewers can upload files / add links / add folders. `uploadedByRole` set to `'viewer'` for viewer requests, `'admin'` if an admin hits the same endpoint. `isPublic` forced to `true` for viewers (server-enforced, not just UI). Old admin endpoint refactored to delegate to a shared `handleProgrammeFilePost` in `src/lib/upload.js` — same MIME allowlist, same try/catch + type-check pattern
+  3. **Role-aware delete** — new `DELETE /api/programmes/[id]/files/[fileId]`. Admin: can delete any file. Viewer: can delete only files where `uploadedByRole === 'viewer'`. Viewer trying to delete an admin-uploaded file gets 404 (existence not leaked, same M-2 pattern). Legacy `/api/admin/.../files/[fileId]` endpoint left in place for admin convenience, still works
+- **PM**: Schema change — added `uploadedByRole String @default("admin")` to `ProgrammeFile`. New migration `20260903044758_add_file_uploaded_by_role`. Existing rows default to `'admin'` so they're not undeletable by viewers
+- **PM**: New components: `ViewerFileUploader.jsx` (upload form, no isPublic checkbox, no COVER_IMAGE category), `DeleteFileButton.jsx` (trash icon, calls canonical `/api/programmes/...` endpoint)
+- **PM**: Public programme page updated — `role` from `getRole()` decides: admin sees all + delete on every file, viewer sees public only + delete on own uploads only, unauth gets redirected by middleware. File list now shows "Uploaded by viewer" badge on viewer-uploaded items
+- **PM**: Labels updated — `UPLOADED_BY_LABEL`, `UPLOADED_BY_BADGE`, `UPLOADED_BY_ORDER`, `PATHWAY_ORDER` (new canonical pathway order)
+- **PM**: Audit regression check all green: C-1 forged cookie → 307 / 401, H-1 HTML upload → MIME rejected, H-2 numeric name → 400 not 500, M-1 open-redirect still blocked by LoginForm, M-2 private file → viewer 404 / admin 200, M-3/M-4 all security headers present, M-6 BASE_PATH validation intact
+- **PM**: Build clean, two new routes (`/api/programmes/[id]/files`, `/api/programmes/[id]/files/[fileId]`). Status: ready to push

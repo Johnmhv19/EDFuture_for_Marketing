@@ -88,6 +88,12 @@ model ProgrammeFile {
   // COVER_IMAGE defaults to false; everything else defaults to true.
   // See AUDIT-REPORT.md M-2.
   isPublic     Boolean      @default(false)
+  // Role of the uploader: 'admin' or 'viewer'. Used to gate delete
+  // permission — viewers can only delete files they themselves
+  // uploaded; admins can delete any file. Defaults to 'admin' so
+  // existing rows from before this field was added are not suddenly
+  // undeletable by viewers.
+  uploadedByRole String     @default("admin")
   // Audit
   uploadedAt   DateTime     @default(now())
   uploadedBy   String?

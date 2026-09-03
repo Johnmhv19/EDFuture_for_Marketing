@@ -1,14 +1,20 @@
-// Programme detail page (public, read-only).
-// Shows the cover, metadata, and all public files (videos, photos,
-// articles, resources) grouped by category.
+// Programme detail page (public, read-only by default; admins and
+// viewers can upload new files via the ViewerFileUploader).
+//
+// What is shown to whom:
+//   - Anyone (unauth or viewer or admin): cover, metadata, public
+//     files grouped by category.
+//   - Admin: also sees private files (isPublic = false), the upload
+//     form, and delete buttons on every file.
+//   - Viewer: sees the upload form (forced public), delete buttons
+//     only on files they themselves uploaded.
 //
 // File visibility:
-//   - Public: any viewer (or unauth) can see the cover and public
-//     files via /api/files/[id]; the public programme page also
-//     lists them.
-//   - Private (isPublic = false): only admins see them. The
-//     public page hides them; the /api/files route 404s for
-//     non-admins (existence not leaked). See AUDIT-REPORT.md M-2.
+//   - Public (isPublic = true): any viewer (or unauth) can see the
+//     file via /api/files/[id]; the page also lists it.
+//   - Private (isPublic = false): only admins see it. The public
+//     page hides it; the /api/files route 404s for non-admins
+//     (existence not leaked). See AUDIT-REPORT.md M-2.
 
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -18,9 +24,13 @@ import {
   PATHWAY_LABEL, PATHWAY_COLOR,
   FILE_CATEGORY_LABEL, FILE_CATEGORY_ICON, PUBLIC_FILE_CATEGORIES,
   STATUS_COLOR,
+  UPLOADED_BY_LABEL, UPLOADED_BY_BADGE,
 } from '@/lib/labels';
 import { withBase } from '@/lib/basePath';
-import { isAdmin } from '@/lib/auth';
+import { getRole } from '@/lib/auth';
+import { ROLE } from '@/lib/auth';
+import ViewerFileUploader from './ViewerFileUploader';
+import DeleteFileButton from './DeleteFileButton';
 
 export const dynamic = 'force-dynamic';
 
@@ -41,12 +51,14 @@ export default async function ProgrammePage({ params }) {
   const programme = await getProgramme(id);
   if (!programme) notFound();
 
-  const admin = await isAdmin();
+  const role = await getRole();
+  const isAdmin = role === ROLE.ADMIN;
+  const isAuthenticated = role === ROLE.ADMIN || role === ROLE.VIEWER;
+
   // Cover is always shown if it exists. Public viewers only see
-  // the cover if its isPublic flag is true (or it's the default
-  // public behaviour for non-COVER_IMAGE categories).
+  // the cover if its isPublic flag is true.
   const cover = programme.files.find(f => f.category === 'COVER_IMAGE');
-  const visibleFiles = admin ? programme.files : programme.files.filter(f => f.isPublic);
+  const visibleFiles = isAdmin ? programme.files : programme.files.filter(f => f.isPublic);
   const otherFiles = visibleFiles.filter(f => f.category !== 'COVER_IMAGE');
   const grouped = {};
   for (const cat of PUBLIC_FILE_CATEGORIES) grouped[cat] = [];
@@ -85,7 +97,12 @@ export default async function ProgrammePage({ params }) {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Main column */}
           <div className="md:col-span-2 space-y-6">
-            {cover && (
+            {/* Upload form (viewers + admins only) */}
+            {isAuthenticated && (
+              <ViewerFileUploader programmeId={programme.id} />
+            )}
+
+            {cover && (isAdmin || cover.isPublic) && (
               <div className="card overflow-hidden">
                 <img src={withBase(`/api/files/${cover.id}`)} alt={cover.displayName} className="w-full h-auto" />
               </div>
@@ -116,6 +133,11 @@ export default async function ProgrammePage({ params }) {
                       const meta = isExternal
                         ? shortUrl(f.url)
                         : `${formatBytes(f.sizeBytes)} · ${new Date(f.uploadedAt).toLocaleDateString()}`;
+                      // Delete button visibility:
+                      //   - admin: always shown
+                      //   - viewer: shown only if the file was uploaded by a viewer
+                      //   - unauth: never shown
+                      const canDelete = isAdmin || (isAuthenticated && f.uploadedByRole === 'viewer');
                       return (
                         <li key={f.id} className="py-3 flex items-center gap-3">
                           <span className="text-2xl">{icon}</span>
@@ -129,21 +151,45 @@ export default async function ProgrammePage({ params }) {
                               {f.displayName}
                             </a>
                             {f.caption && <p className="text-xs text-gray-500">{f.caption}</p>}
-                            <p className="text-xs text-gray-400">{meta}</p>
+                            <p className="text-xs text-gray-400 flex flex-wrap items-center gap-x-1.5 gap-y-1">
+                              <span>{meta}</span>
+                              {!f.isPublic && (
+                                <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold bg-gray-200 text-gray-700">
+                                  Private
+                                </span>
+                              )}
+                              {f.uploadedByRole && f.uploadedByRole !== 'admin' && (
+                                <span
+                                  className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold ${UPLOADED_BY_BADGE[f.uploadedByRole] || 'bg-gray-200 text-gray-700'}`}
+                                  title={UPLOADED_BY_LABEL[f.uploadedByRole] || f.uploadedByRole}
+                                >
+                                  {UPLOADED_BY_LABEL[f.uploadedByRole] || f.uploadedByRole}
+                                </span>
+                              )}
+                            </p>
                           </div>
-                          {isExternal ? (
-                            <span className="text-xs text-gray-500 px-3">
-                              {f.type === 'FOLDER' ? 'Folder' : 'Link'} ↗
-                            </span>
-                          ) : (
-                            <a
-                              href={withBase(`/api/files/${f.id}`)}
-                              download
-                              className="btn btn-ghost"
-                            >
-                              Download
-                            </a>
-                          )}
+                          <div className="flex items-center gap-2 shrink-0">
+                            {isExternal ? (
+                              <span className="text-xs text-gray-500 px-3">
+                                {f.type === 'FOLDER' ? 'Folder' : 'Link'} ↗
+                              </span>
+                            ) : (
+                              <a
+                                href={withBase(`/api/files/${f.id}`)}
+                                download
+                                className="btn btn-ghost"
+                              >
+                                Download
+                              </a>
+                            )}
+                            {canDelete && (
+                              <DeleteFileButton
+                                programmeId={programme.id}
+                                fileId={f.id}
+                                fileName={f.displayName}
+                              />
+                            )}
+                          </div>
                         </li>
                       );
                     })}
@@ -152,7 +198,7 @@ export default async function ProgrammePage({ params }) {
               );
             })}
 
-            {otherFiles.length === 0 && (
+            {otherFiles.length === 0 && !isAuthenticated && (
               <div className="card p-8 text-center text-gray-500">
                 No files uploaded yet.
               </div>
@@ -169,6 +215,11 @@ export default async function ProgrammePage({ params }) {
               {programme.dates && <Fact label="Dates" value={programme.dates} />}
               <Fact label="Status" value={programme.status} />
             </div>
+            {!isAuthenticated && (
+              <div className="card p-4 text-xs text-gray-500">
+                Sign in to upload files or links to this programme.
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -186,6 +237,7 @@ function Fact({ label, value }) {
 }
 
 function formatBytes(bytes) {
+  if (!bytes) return '';
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   if (bytes < 1024 * 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} MB`;

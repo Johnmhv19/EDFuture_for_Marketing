@@ -4,19 +4,26 @@
 // ProgrammesBrowser — client-side search + smooth scroll
 // =====================================================
 // Owns the search input and renders either:
-//   - the normal level-cards / by-level / by-pathway sections, OR
-//   - a flat grid of programmes matching the search query
+//   - the view-mode selected via the toggle (By Level | By Pathway),
+//   - or a flat grid of programmes matching the search query.
 //
-// Also exposes a SmoothScrollLink that scrolls to a level section
-// with a slow ease-in-out (the default `scroll-behavior: smooth` is
-// too abrupt).
+// Also exposes a SmoothScrollLink that scrolls to a section anchor
+// (level or pathway) with a slow ease-in-out (the default
+// `scroll-behavior: smooth` is too abrupt).
+//
+// View choice persists in localStorage as `pp.view` ('level' | 'pathway').
+// Default is 'pathway'. SSR is safe: we read localStorage in an effect
+// and fall back to the server-rendered default during the first frame.
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import {
   LEVEL_LABEL, LEVEL_SHORT, LEVEL_COLOR, LEVEL_ORDER,
-  PATHWAY_LABEL, PATHWAY_COLOR, STATUS_COLOR,
+  PATHWAY_LABEL, PATHWAY_COLOR, PATHWAY_ORDER, STATUS_COLOR,
 } from '@/lib/labels';
+
+const VIEW_STORAGE_KEY = 'pp.view';
+const DEFAULT_VIEW = 'pathway';
 
 // Custom slow-easing scroll. Duration 1200ms with cubic ease-in-out.
 function smoothScrollTo(targetY, duration = 1200) {
@@ -37,18 +44,22 @@ function smoothScrollTo(targetY, duration = 1200) {
   requestAnimationFrame(step);
 }
 
-function SmoothScrollLink({ level, children, className, style }) {
+// SmoothScrollLink scrolls to a section anchor. `kind` is
+// 'level' (anchor id `level-${level}`) or 'pathway' (anchor id
+// `pathway-${pathway}`). Same smooth-scroll behaviour either way.
+function SmoothScrollLink({ kind, value, children, className, style }) {
+  const anchor = `${kind}-${value}`;
   function onClick(e) {
     e.preventDefault();
-    const target = document.getElementById(`level-${level}`);
+    const target = document.getElementById(anchor);
     if (target) {
       const targetY = target.getBoundingClientRect().top + window.scrollY - 100;
       smoothScrollTo(targetY, 1200);
-      history.replaceState(null, '', `#level-${level}`);
+      history.replaceState(null, '', `#${anchor}`);
     }
   }
   return (
-    <a href={`#level-${level}`} onClick={onClick} className={className} style={style}>
+    <a href={`#${anchor}`} onClick={onClick} className={className} style={style}>
       {children}
     </a>
   );
@@ -56,6 +67,30 @@ function SmoothScrollLink({ level, children, className, style }) {
 
 export default function ProgrammesBrowser({ programmes, byLevel, byPathway }) {
   const [query, setQuery] = useState('');
+
+  // null = "not yet read" (server-render state); 'level' | 'pathway' = the
+  // real value. We pick `DEFAULT_VIEW` for the first frame so SSR
+  // and the first client render match (no hydration warning), then
+  // sync with localStorage in the effect.
+  const [view, setView] = useState(DEFAULT_VIEW);
+
+  useEffect(() => {
+    try {
+      const stored = window.localStorage.getItem(VIEW_STORAGE_KEY);
+      if (stored === 'level' || stored === 'pathway') {
+        setView(stored);
+      }
+    } catch {
+      // localStorage may be unavailable (private mode, sandbox) —
+      // fall back to the default.
+    }
+  }, []);
+
+  function changeView(next) {
+    setView(next);
+    try { window.localStorage.setItem(VIEW_STORAGE_KEY, next); } catch {}
+  }
+
   const trimmed = query.trim().toLowerCase();
 
   const matches = useMemo(() => {
@@ -70,9 +105,29 @@ export default function ProgrammesBrowser({ programmes, byLevel, byPathway }) {
 
   const isSearching = matches !== null;
 
+  // Pathway section order. The user-visible "Whole School" group
+  // sits at the end of the pathway view.
+  const pathwayOrder = useMemo(() => {
+    const seen = new Set();
+    const order = [];
+    for (const p of PATHWAY_ORDER) {
+      if (byPathway[p] && byPathway[p].length > 0) {
+        order.push(p);
+        seen.add(p);
+      }
+    }
+    // Any pathway present in data but not in PATHWAY_ORDER goes
+    // at the end (defensive — shouldn't happen, but cheaper than
+    // an unknown-key render).
+    for (const p of Object.keys(byPathway)) {
+      if (!seen.has(p) && byPathway[p].length > 0) order.push(p);
+    }
+    return order;
+  }, [byPathway]);
+
   return (
     <>
-      {/* ───── Sticky search bar ───── */}
+      {/* ───── Sticky search bar + view toggle ───── */}
       <div className="bg-white/95 backdrop-blur border-b border-gray-200 sticky top-0 z-30 shadow-sm">
         <div className="max-w-5xl mx-auto px-6 py-3">
           <div className="relative">
@@ -108,6 +163,24 @@ export default function ProgrammesBrowser({ programmes, byLevel, byPathway }) {
               </button>
             )}
           </div>
+
+          {/* ───── View toggle: By Level | By Pathway ───── */}
+          <div className="mt-3 flex items-center gap-1" role="tablist" aria-label="View programmes by">
+            <ViewTab
+              active={view === 'level'}
+              onClick={() => changeView('level')}
+              label="By Level"
+            />
+            <ViewTab
+              active={view === 'pathway'}
+              onClick={() => changeView('pathway')}
+              label="By Pathway"
+            />
+            <span className="ml-auto text-[10px] text-gray-400 uppercase tracking-wider">
+              {view === 'pathway' ? 'Default view' : ''}
+            </span>
+          </div>
+
           {isSearching && (
             <div className="mt-2 text-xs text-gray-500">
               {matches.length === 0
@@ -120,59 +193,10 @@ export default function ProgrammesBrowser({ programmes, byLevel, byPathway }) {
 
       {isSearching ? (
         <SearchResultsGrid matches={matches} query={query} />
+      ) : view === 'pathway' ? (
+        <PathwayView byPathway={byPathway} pathwayOrder={pathwayOrder} />
       ) : (
-        <>
-          {/* ───── Level quick-jump cards ───── */}
-          <section className="bg-gray-50">
-            <div className="max-w-5xl mx-auto px-6 py-14">
-              <div className="mb-8">
-                <div className="text-xs font-bold uppercase tracking-wider text-blue-700">Browse by level</div>
-                <h2 className="mt-1 text-3xl font-extrabold text-gray-900">Programmes by Level</h2>
-                <p className="mt-2 text-gray-600">Click a card to jump to that level's programmes.</p>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-                {LEVEL_ORDER.map(level => (
-                  <LevelCard key={level} level={level} programmes={byLevel[level] || []} />
-                ))}
-              </div>
-            </div>
-          </section>
-
-          {/* ───── By Level (detailed) ───── */}
-          <section className="bg-white">
-            <div className="max-w-5xl mx-auto px-6 py-14">
-              <div className="mb-8">
-                <div className="text-xs font-bold uppercase tracking-wider text-blue-700">All programmes</div>
-                <h2 className="mt-1 text-3xl font-extrabold text-gray-900">Programme List</h2>
-                <p className="mt-2 text-gray-600">Click a programme to see its recap videos, photos, articles, and resources.</p>
-              </div>
-              <div className="text-xs text-gray-500 mb-6 flex flex-wrap gap-x-5 gap-y-1">
-                <span className="font-semibold text-gray-700">Colour key:</span>
-                <span><span className="inline-block w-3 h-3 rounded-sm align-middle mr-1" style={{ backgroundColor: '#2563eb' }}></span> pathway colour = programme type</span>
-                <span><span className="inline-block w-3 h-3 rounded-full align-middle mr-1" style={{ backgroundColor: '#2563eb' }}></span> round badge = level</span>
-              </div>
-              {LEVEL_ORDER.map(level => (
-                <LevelSection key={level} level={level} programmes={byLevel[level] || []} />
-              ))}
-            </div>
-          </section>
-
-          {/* ───── By Pathway ───── */}
-          <section className="bg-gray-50">
-            <div className="max-w-5xl mx-auto px-6 py-14">
-              <div className="mb-8">
-                <div className="text-xs font-bold uppercase tracking-wider text-blue-700">Browse by pathway</div>
-                <h2 className="mt-1 text-3xl font-extrabold text-gray-900">Programmes by Pathway</h2>
-                <p className="mt-2 text-gray-600">Each pathway is a different flavour of super-curriculum experience.</p>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                {Object.entries(byPathway).map(([pathway, items]) => (
-                  <PathwayCard key={pathway} pathway={pathway} items={items} />
-                ))}
-              </div>
-            </div>
-          </section>
-        </>
+        <LevelView byLevel={byLevel} />
       )}
     </>
   );
@@ -181,6 +205,102 @@ export default function ProgrammesBrowser({ programmes, byLevel, byPathway }) {
 // ────────────────────────────────────────────────────────────────
 // Sub-components
 // ────────────────────────────────────────────────────────────────
+
+function ViewTab({ active, onClick, label }) {
+  return (
+    <button
+      type="button"
+      role="tab"
+      aria-selected={active}
+      onClick={onClick}
+      className="px-4 py-1.5 text-xs font-bold uppercase tracking-wider rounded-full transition"
+      style={{
+        backgroundColor: active ? '#000000' : 'transparent',
+        color: active ? '#ffffff' : '#374151',
+        border: active ? '1px solid #000000' : '1px solid #d1d5db',
+      }}
+    >
+      {label}
+    </button>
+  );
+}
+
+function LevelView({ byLevel }) {
+  return (
+    <>
+      {/* ───── Level quick-jump cards ───── */}
+      <section className="bg-gray-50">
+        <div className="max-w-5xl mx-auto px-6 py-14">
+          <div className="mb-8">
+            <div className="text-xs font-bold uppercase tracking-wider text-blue-700">Browse by level</div>
+            <h2 className="mt-1 text-3xl font-extrabold text-gray-900">Programmes by Level</h2>
+            <p className="mt-2 text-gray-600">Click a card to jump to that level's programmes.</p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+            {LEVEL_ORDER.map(level => (
+              <LevelCard key={level} level={level} programmes={byLevel[level] || []} />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ───── By Level (detailed) ───── */}
+      <section className="bg-white">
+        <div className="max-w-5xl mx-auto px-6 py-14">
+          <div className="mb-8">
+            <div className="text-xs font-bold uppercase tracking-wider text-blue-700">All programmes</div>
+            <h2 className="mt-1 text-3xl font-extrabold text-gray-900">Programme List</h2>
+            <p className="mt-2 text-gray-600">Click a programme to see its recap videos, photos, articles, and resources.</p>
+          </div>
+          <div className="text-xs text-gray-500 mb-6 flex flex-wrap gap-x-5 gap-y-1">
+            <span className="font-semibold text-gray-700">Colour key:</span>
+            <span><span className="inline-block w-3 h-3 rounded-sm align-middle mr-1" style={{ backgroundColor: '#2563eb' }}></span> pathway colour = programme type</span>
+            <span><span className="inline-block w-3 h-3 rounded-full align-middle mr-1" style={{ backgroundColor: '#2563eb' }}></span> round badge = level</span>
+          </div>
+          {LEVEL_ORDER.map(level => (
+            <LevelSection key={level} level={level} programmes={byLevel[level] || []} />
+          ))}
+        </div>
+      </section>
+    </>
+  );
+}
+
+function PathwayView({ byPathway, pathwayOrder }) {
+  return (
+    <>
+      {/* ───── Pathway quick-jump cards ───── */}
+      <section className="bg-gray-50">
+        <div className="max-w-5xl mx-auto px-6 py-14">
+          <div className="mb-8">
+            <div className="text-xs font-bold uppercase tracking-wider text-blue-700">Browse by pathway</div>
+            <h2 className="mt-1 text-3xl font-extrabold text-gray-900">Programmes by Pathway</h2>
+            <p className="mt-2 text-gray-600">Click a card to jump to that pathway's programmes.</p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {pathwayOrder.map(pathway => (
+              <PathwayQuickCard key={pathway} pathway={pathway} programmes={byPathway[pathway] || []} />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ───── By Pathway (detailed) ───── */}
+      <section className="bg-white">
+        <div className="max-w-5xl mx-auto px-6 py-14">
+          <div className="mb-8">
+            <div className="text-xs font-bold uppercase tracking-wider text-blue-700">All programmes</div>
+            <h2 className="mt-1 text-3xl font-extrabold text-gray-900">Programme List</h2>
+            <p className="mt-2 text-gray-600">Each pathway is a different flavour of super-curriculum experience.</p>
+          </div>
+          {pathwayOrder.map(pathway => (
+            <PathwaySection key={pathway} pathway={pathway} programmes={byPathway[pathway] || []} />
+          ))}
+        </div>
+      </section>
+    </>
+  );
+}
 
 function SearchResultsGrid({ matches, query }) {
   return (
@@ -215,7 +335,8 @@ function LevelCard({ level, programmes }) {
 
   return (
     <SmoothScrollLink
-      level={level}
+      kind="level"
+      value={level}
       className={`card flex flex-col group overflow-hidden ${count === 0 ? 'opacity-50 pointer-events-none' : ''}`}
     >
       {/* Blackboard surface */}
@@ -305,6 +426,108 @@ function LevelSection({ level, programmes }) {
   );
 }
 
+// Chalkboard-styled pathway quick-jump card. The pathway colour
+// shows up in the label dot, mirroring the LevelCard design.
+function PathwayQuickCard({ pathway, programmes }) {
+  const count = programmes.length;
+  const color = PATHWAY_COLOR[pathway] || '#6b7280';
+  const byLevelCount = {};
+  for (const p of programmes) {
+    byLevelCount[p.level] = (byLevelCount[p.level] || 0) + 1;
+  }
+  const levels = Object.entries(byLevelCount).sort((a, b) => b[1] - a[1]);
+  return (
+    <SmoothScrollLink
+      kind="pathway"
+      value={pathway}
+      className={`card flex flex-col group overflow-hidden ${count === 0 ? 'opacity-50 pointer-events-none' : ''}`}
+    >
+      <div
+        className="relative h-24 flex items-center justify-center"
+        style={{
+          backgroundColor: '#000000',
+          backgroundImage:
+            'radial-gradient(circle at 20% 30%, rgba(255,255,255,0.04) 0, transparent 40%),' +
+            'radial-gradient(circle at 70% 60%, rgba(255,255,255,0.03) 0, transparent 40%),' +
+            'radial-gradient(circle at 40% 80%, rgba(255,255,255,0.05) 0, transparent 30%)',
+        }}
+      >
+        <div className="absolute top-2 left-3 text-white/5 text-[10px] pointer-events-none" style={{ fontFamily: "var(--font-caveat), cursive" }}>~</div>
+        <div className="absolute bottom-3 right-4 text-white/5 text-[12px] pointer-events-none" style={{ fontFamily: "var(--font-caveat), cursive" }}>~</div>
+        <span
+          className="text-white text-2xl"
+          style={{
+            fontFamily: "var(--font-caveat), 'Bradley Hand', 'Brush Script MT', cursive",
+            fontWeight: '500',
+            textShadow:
+              '0 0 1px rgba(255,255,255,0.4),' +
+              '0 0 8px rgba(255,255,255,0.18),' +
+              '0 1px 0 rgba(0,0,0,0.5)',
+            letterSpacing: '0.02em',
+          }}
+        >
+          {PATHWAY_LABEL[pathway] || pathway}
+        </span>
+        <div
+          className="absolute bottom-0 left-0 right-0 h-1.5"
+          style={{ backgroundColor: color }}
+        />
+      </div>
+      <div className="p-3 flex-1 flex flex-col">
+        <div className="text-xs text-gray-500 mb-1 flex items-center gap-1.5">
+          <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: color }} />
+          {pathway === 'WHOLE_SCHOOL' ? 'Whole School' : 'Pathway'}
+        </div>
+        <div className="text-sm font-bold text-gray-900 mb-2">
+          {count} programme{count === 1 ? '' : 's'}
+        </div>
+        {levels.length > 0 && (
+          <div className="flex flex-col gap-1 mt-auto">
+            {levels.slice(0, 4).map(([lvl, n]) => (
+              <div key={lvl} className="flex items-center gap-1.5 text-xs">
+                <span
+                  className="w-2 h-2 rounded-full shrink-0"
+                  style={{ backgroundColor: LEVEL_COLOR[lvl] || '#9ca3af' }}
+                />
+                <span className="truncate text-gray-600 flex-1">{LEVEL_SHORT[lvl]}</span>
+                <span className="text-gray-400">{n}</span>
+              </div>
+            ))}
+            {levels.length > 4 && (
+              <div className="text-xs text-gray-400">+{levels.length - 4} more</div>
+            )}
+          </div>
+        )}
+        {levels.length === 0 && (
+          <div className="text-xs text-gray-400 italic mt-auto">No programmes yet</div>
+        )}
+      </div>
+    </SmoothScrollLink>
+  );
+}
+
+// Pathway detail section: pathway-coloured header bar above the
+// programme grid. Same chalkboard divider vibe as LevelSection but
+// the divider is the pathway colour, not the level colour.
+function PathwaySection({ pathway, programmes }) {
+  if (programmes.length === 0) return null;
+  const color = PATHWAY_COLOR[pathway] || '#6b7280';
+  return (
+    <div className="mb-12 last:mb-0 scroll-mt-32" id={`pathway-${pathway}`}>
+      <div className="flex items-center gap-3 mb-4">
+        <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: color }} />
+        <h3 className="text-xl font-bold" style={{ color }}>
+          {PATHWAY_LABEL[pathway] || pathway}
+        </h3>
+        <span className="text-xs text-gray-400">· {programmes.length} programme{programmes.length === 1 ? '' : 's'}</span>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {programmes.map(p => <ProgrammeCard key={p.id} programme={p} />)}
+      </div>
+    </div>
+  );
+}
+
 function ProgrammeCard({ programme }) {
   const hasCover = programme.files?.some(f => f.category === 'COVER_IMAGE');
   const otherFiles = programme.files?.filter(f => f.category !== 'COVER_IMAGE') || [];
@@ -354,27 +577,5 @@ function ProgrammeCard({ programme }) {
         )}
       </div>
     </Link>
-  );
-}
-
-function PathwayCard({ pathway, items }) {
-  const color = PATHWAY_COLOR[pathway] || '#6b7280';
-  return (
-    <div className="card p-5">
-      <div className="flex items-center gap-2 mb-3">
-        <span className="w-3 h-3 rounded-full" style={{ backgroundColor: color }} />
-        <h4 className="font-bold text-gray-900">{PATHWAY_LABEL[pathway]}</h4>
-        <span className="text-xs text-gray-500">· {items.length}</span>
-      </div>
-      <ul className="text-sm text-gray-700 space-y-1">
-        {items.map(p => (
-          <li key={p.id} className="truncate">
-            <Link href={`/programmes/${p.id}`} className="hover:text-blue-700">
-              {p.name}
-            </Link>
-          </li>
-        ))}
-      </ul>
-    </div>
   );
 }

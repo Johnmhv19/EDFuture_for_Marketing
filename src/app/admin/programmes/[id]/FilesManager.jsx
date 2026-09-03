@@ -16,6 +16,7 @@ import { useRouter } from 'next/navigation';
 import {
   FILE_CATEGORY_LABEL, FILE_CATEGORY_ICON,
   FILE_TYPE_LABEL, FILE_TYPE_ICON, FILE_TYPE_ORDER,
+  UPLOADED_BY_LABEL, UPLOADED_BY_BADGE,
 } from '@/lib/labels';
 import { withBase } from '@/lib/basePath';
 
@@ -275,6 +276,14 @@ export default function FilesManager({ programmeId, files }) {
                         }`} title={f.isPublic ? 'Viewers can download this file' : 'Admin only — viewers get 404'}>
                           {f.isPublic ? 'Public' : 'Private'}
                         </span>
+                        {f.uploadedByRole && f.uploadedByRole !== 'admin' && (
+                          <span
+                            className={`ml-1 inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold ${UPLOADED_BY_BADGE[f.uploadedByRole] || 'bg-gray-200 text-gray-700'}`}
+                            title={UPLOADED_BY_LABEL[f.uploadedByRole] || f.uploadedByRole}
+                          >
+                            {UPLOADED_BY_LABEL[f.uploadedByRole] || f.uploadedByRole}
+                          </span>
+                        )}
                       </p>
                     </div>
                     <button onClick={() => deleteFile(f.id)} className="text-xs text-red-600 hover:text-red-800 shrink-0">

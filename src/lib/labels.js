@@ -48,6 +48,20 @@ export const PATHWAY_COLOR = {
   COMPUTER_SCIENCE_DATA_SCIENCE: '#6b7280',
 };
 
+// Canonical order for pathway sections. Used by the home page
+// view toggle and any other UI that lists pathways. The WHOLE_SCHOOL
+// pathway is intentionally NOT in this order — programmes with that
+// pathway go in a "Whole School" section at the end of the pathway
+// view.
+export const PATHWAY_ORDER = [
+  'ROBOTICS_ENGINEERING',
+  'BUSINESS_LAW',
+  'CREATIVE_EXPERIENCE',
+  'HEALTH_MEDICINE',
+  'SCIENCE_RESEARCH',
+  'COMPUTER_SCIENCE_DATA_SCIENCE',
+];
+
 export const FILE_CATEGORY_LABEL = {
   VIDEO: 'Video',
   PHOTO: 'Photo',
@@ -93,3 +107,18 @@ export const STATUS_COLOR = {
   TBD: 'bg-gray-100 text-gray-800',
   'In development': 'bg-blue-100 text-blue-800',
 };
+
+// Role of the uploader — used to decide who can delete a file.
+// Viewers may only delete files they themselves uploaded; admins
+// can delete any file.
+export const UPLOADED_BY_LABEL = {
+  admin: 'Uploaded by admin',
+  viewer: 'Uploaded by viewer',
+};
+
+export const UPLOADED_BY_BADGE = {
+  admin: 'bg-blue-100 text-blue-800',
+  viewer: 'bg-emerald-100 text-emerald-800',
+};
+
+export const UPLOADED_BY_ORDER = ['admin', 'viewer'];
