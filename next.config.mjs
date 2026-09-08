@@ -88,13 +88,15 @@ const nextConfig = {
         key: 'Content-Security-Policy',
         value: [
           "default-src 'self'",
-          // Dev-only: Next.js's hot-module-replacement runtime uses
-          // both eval() and inline <script> tags to rebuild modules
-          // on the fly. Production builds do neither — so 'unsafe-eval'
-          // and 'unsafe-inline' are added to script-src only in
-          // development. See AUDIT-REPORT.md M-4.
+          // Next.js's production App Router emits inline <script> tags
+          // for React Server Components bootstrap data (self.__next_f).
+          // Blocking them with script-src 'self' prevents hydration and
+          // breaks all client-side interactivity (filters, login buttons).
+          // 'unsafe-inline' is therefore kept in production; 'unsafe-eval'
+          // is still dev-only because production builds do not use eval().
+          // See AUDIT-REPORT.md M-4.
           isProd
-            ? "script-src 'self'"
+            ? "script-src 'self' 'unsafe-inline'"
             : "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
           "style-src 'self' 'unsafe-inline'",
           "img-src 'self' data:",
